@@ -9,7 +9,6 @@ import {
   Play,
   Square,
   CheckCircle,
-  Sliders,
   Check,
   Sparkles,
   Trash2,
@@ -32,8 +31,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   isLoading,
 }) => {
   const [character, setCharacter] = useState<CharacterMode>(profile.character);
-  const [speed, setSpeed] = useState<number>(profile.speed);
-  const [pitch, setPitch] = useState<number>(profile.pitch || 1.0);
 
   // Trained Voice Models State
   const [trainedModels, setTrainedModels] = useState<TrainedVoiceModel[]>([]);
@@ -99,8 +96,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   useEffect(() => {
     setCharacter(profile.character);
-    setSpeed(profile.speed);
-    setPitch(profile.pitch || 1.0);
     if (profile.activeVoiceModelId) {
       setActiveModelId(profile.activeVoiceModelId);
     }
@@ -217,10 +212,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       if (stopAudioFn) stopAudioFn();
       setPlayingModelId(model.id);
 
-      const effectivePitch = pitch * (model.pitchOffset || 1.0);
+      const effectivePitch = model.pitchOffset || 1.0;
       const stop = playVoiceSample(
         model.samplePhrase,
-        speed,
+        1.0,
         effectivePitch,
         () => {
           setPlayingModelId(null);
@@ -236,8 +231,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     await onSaveProfile({
       character,
       activeVoiceModelId: activeModelId,
-      speed,
-      pitch,
+      speed: 1.0,
+      pitch: 1.0,
     });
     setSaveSuccessMsg('로봇에 캐릭터 모드 및 선택된 음성 설정이 실시간 동기화되었습니다.');
     setTimeout(() => setSaveSuccessMsg(null), 3500);
@@ -645,67 +640,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
             {/* DIRECT INLINE VOICE SELECTION: Displayed right below when Cooking Mate is selected */}
             {character === 'cooking' && renderVoiceListForCharacter('cooking', cookingModels)}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION: Speed and Pitch Tuning */}
-      <section className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-4 space-y-4 shadow-[0_2px_8px_rgba(180,170,155,0.06)]">
-        <div className="flex items-center justify-between border-b border-[#EFEAE0] pb-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#7A7268] flex items-center gap-1.5">
-            <Sliders className="w-4 h-4 text-[#2D7D54]" />
-            <span>음성 발화 속도 및 음높이 미세조절</span>
-          </h2>
-          <span className="text-[10px] text-[#8C8479] font-mono">실시간 적용</span>
-        </div>
-
-        {/* Speed Slider */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[#38332E] font-semibold">말하기 속도</span>
-            <span className="font-mono text-[#236845] font-bold">{speed.toFixed(1)}x</span>
-          </div>
-
-          <div className="space-y-1">
-            <input
-              type="range"
-              min="0.7"
-              max="1.5"
-              step="0.1"
-              value={speed}
-              onChange={(e) => setSpeed(parseFloat(e.target.value))}
-              className="w-full accent-[#2D7D54] bg-[#E8E2D8] rounded-lg h-1.5 cursor-pointer"
-            />
-            <div className="flex justify-between text-[10px] text-[#8C8479] px-0.5">
-              <span>느림 (0.7x)</span>
-              <span>보통 (1.0x)</span>
-              <span>빠름 (1.5x)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Pitch Slider */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[#38332E] font-semibold">음높이 (Pitch)</span>
-            <span className="font-mono text-[#236845] font-bold">{pitch.toFixed(1)}</span>
-          </div>
-
-          <div className="space-y-1">
-            <input
-              type="range"
-              min="0.8"
-              max="1.2"
-              step="0.05"
-              value={pitch}
-              onChange={(e) => setPitch(parseFloat(e.target.value))}
-              className="w-full accent-[#2D7D54] bg-[#E8E2D8] rounded-lg h-1.5 cursor-pointer"
-            />
-            <div className="flex justify-between text-[10px] text-[#8C8479] px-0.5">
-              <span>낮음 (0.8)</span>
-              <span>표준 (1.0)</span>
-              <span>높음 (1.2)</span>
-            </div>
           </div>
         </div>
       </section>
