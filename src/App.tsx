@@ -6,6 +6,7 @@ import { ProactiveTab } from './components/tabs/ProactiveTab';
 import { SettingsTab } from './components/tabs/SettingsTab';
 import {
   ChatMessage,
+  MemoryFact,
   ProactiveSummary,
   RobotProfile,
   RobotStatus,
@@ -29,6 +30,11 @@ export const App: React.FC = () => {
   const [hasQueried, setHasQueried] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatsLoading, setIsChatsLoading] = useState<boolean>(false);
+
+  // Long-term Memory Facts State
+  const [facts, setFacts] = useState<MemoryFact[]>([]);
+  const [isFactsLoading, setIsFactsLoading] = useState<boolean>(false);
+  const [isExtracting, setIsExtracting] = useState<boolean>(false);
 
   // Proactive Interventions State
   const [proactiveSummary, setProactiveSummary] = useState<ProactiveSummary | null>(null);
@@ -121,18 +127,37 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Fetch Long-term Memory Facts
+  const fetchFacts = useCallback(async () => {
+    try {
+      setIsFactsLoading(true);
+      const res = await fetch('/api/v1/facts');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setFacts(json.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch facts', err);
+    } finally {
+      setIsFactsLoading(false);
+    }
+  }, []);
+
   // Periodic poll for status & initial loads
   useEffect(() => {
     fetchStatus();
     fetchProfile();
     fetchProactive();
+    fetchFacts();
 
     const interval = setInterval(() => {
       fetchStatus();
-    }, 2000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [fetchStatus, fetchProfile, fetchProactive]);
+  }, [fetchStatus, fetchProfile, fetchProactive, fetchFacts]);
 
   // Handle Online/Offline toggle
   const handleToggleOnline = async () => {
@@ -153,7 +178,66 @@ export const App: React.FC = () => {
     setSelectedDate(date);
     setHasQueried(true);
     fetchChats(date);
-    showToast(`📅 ${date} 일자의 장기 기억 대화 기록을 조회했습니다.`);
+    fetchFacts();
+    showToast(`📅 ${date} 일자의 대화 및 장기기억을 조회했습니다.`);
+  };
+
+  // Extract Memory Facts from Session
+  const handleExtractSession = async (sessionId?: string) => {
+    const targetSid = sessionId || messages.find((m) => m.sessionId)?.sessionId;
+    if (!targetSid) {
+      showToast('⚠️ 추출할 원본 세션 ID를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      setIsExtracting(true);
+      showToast('🧠 AI가 대화에서 장기기억을 추출하고 있습니다...');
+      const res = await fetch(`/api/v1/sessions/${targetSid}/extract`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const counts = json.data.counts || {};
+        const added = counts.ADD || 0;
+        const updated = counts.UPDATE || 0;
+        await fetchFacts();
+        await fetchChats(selectedDate);
+        showToast(`✨ 기억 추출 완료: 신규 ${added}건 추가, ${updated}건 갱신`);
+      } else {
+        showToast(json.message || '기억 추출에 실패했습니다.');
+      }
+    } catch (err: any) {
+      console.error('Extraction failed:', err);
+      showToast('기억 추출 요청 중 오류 발생');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  // Bulk extract all sessions
+  const handleExtractAllSessions = async () => {
+    try {
+      setIsExtracting(true);
+      showToast('⚡ 전체 세션에서 장기기억을 일괄 추출 중입니다 (약 15~30초 소요)...');
+      const res = await fetch('/api/v1/facts/extract-all?reset=false', {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const counts = json.data.counts || {};
+        await fetchFacts();
+        await fetchChats(selectedDate);
+        showToast(`✨ 전체 추출 완료: 총 ${counts.ADD || 0}건의 장기기억 적재`);
+      } else {
+        showToast(json.message || '일괄 추출 실패');
+      }
+    } catch (err: any) {
+      console.error('Bulk extract failed:', err);
+      showToast('일괄 추출 중 오류 발생');
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   // Chat message update (STT typo or LLM memory refinement)
@@ -291,6 +375,11 @@ export const App: React.FC = () => {
             onDeleteAllForDate={handleDeleteAllForDate}
             onAddRecord={handleAddRecord}
             activeCharacter={profile.character}
+            facts={facts}
+            isFactsLoading={isFactsLoading}
+            isExtracting={isExtracting}
+            onExtractSession={handleExtractSession}
+            onExtractAllSessions={handleExtractAllSessions}
           />
         )}
 

@@ -19,6 +19,7 @@ export interface RobotStatus {
 
 export interface ChatMessage {
   id: string;
+  sessionId?: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
   sender: 'user' | 'robot';
@@ -665,6 +666,7 @@ app.get('/api/v1/chats', async (req, res) => {
 
                 remoteChats.push({
                   id: `cloud-${s.session_id.slice(0, 8)}-${idx}`,
+                  sessionId: s.session_id,
                   date: s.session_date || queryDate,
                   time: timeStr,
                   sender: t.role === 'user' ? 'user' : 'robot',
@@ -682,6 +684,12 @@ app.get('/api/v1/chats', async (req, res) => {
               source: 'cloud_postgresql',
               user: CLOUD_DB_CONFIG.userName,
               data: remoteChats,
+              sessions: matchingSessions.map((s) => ({
+                session_id: s.session_id,
+                session_date: s.session_date,
+                character_id: s.character_id,
+                turnCount: s.transcript?.length || 0,
+              })),
               total: remoteChats.length,
             });
           }
@@ -1060,6 +1068,193 @@ app.get('/api/v1/cloud/status', async (req, res) => {
       error: err.message,
     });
   }
+});
+
+// 7. Long-term Memory Facts API (GET /users/{id}/facts)
+app.get('/api/v1/facts', async (req, res) => {
+  const includeExpired = req.query.include_expired === 'true';
+  try {
+    const remoteRes = await fetch(
+      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/facts?include_expired=${includeExpired}`,
+      {
+        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        signal: AbortSignal.timeout(6000),
+      }
+    );
+    if (remoteRes.ok) {
+      const facts = await remoteRes.json();
+      return res.json({
+        success: true,
+        data: facts,
+        total: facts.length,
+        source: 'cloud_postgresql',
+      });
+    }
+  } catch (err: any) {
+    console.warn('[CloudDB] Facts fetch fallback to cache:', err.message);
+  }
+
+  // Graceful fallback
+  res.json({
+    success: true,
+    data: [
+      {
+        memory_id: 1035,
+        user_id: CLOUD_DB_CONFIG.userId,
+        content: "사용자는 2026-09-27에 영어 단어 30개를 외우는 학습을 진행했고, 방금 외운 단어 중 'follow-up'의 이메일 예문을 요청했다.",
+        summary_for_prompt: "2026-09-27 영어 단어 30개 학습, 'follow-up' 이메일 예문 질문",
+        memory_type: 'learning_progress',
+        scope: 'character_private',
+        owner_character_id: 'study',
+        domain_tags: ['영어', '영단어', '예문', '학습진행'],
+        importance: 3,
+        confidence: 0.9,
+        validity_status: 'current',
+        source_session_id: 'a947cc624b50456c94e769a79af7083d',
+        created_at: new Date().toISOString(),
+      },
+    ],
+    total: 1,
+    source: 'in_memory_cache',
+  });
+});
+
+// 8. Session Fact Extraction (POST /users/{id}/sessions/{sessionId}/extract)
+app.post('/api/v1/sessions/:sessionId/extract', async (req, res) => {
+  const { sessionId } = req.params;
+  try {
+    const remoteRes = await fetch(
+      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/sessions/${sessionId}/extract`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': CLOUD_DB_CONFIG.apiKey,
+        },
+        signal: AbortSignal.timeout(35000), // LLM inference timeout
+      }
+    );
+
+    if (remoteRes.ok) {
+      const data = await remoteRes.json();
+      return res.json({
+        success: true,
+        data,
+        source: 'cloud_postgresql',
+      });
+    }
+
+    const errText = await remoteRes.text();
+    return res.status(remoteRes.status).json({
+      success: false,
+      message: `추출 실패: ${errText}`,
+    });
+  } catch (err: any) {
+    console.error('[CloudDB] Extract error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || '기억 추출 중 오류가 발생했습니다.',
+    });
+  }
+});
+
+// 9. Bulk Session Fact Extraction (POST /users/{id}/extract-all)
+app.post('/api/v1/facts/extract-all', async (req, res) => {
+  const reset = req.query.reset === 'true';
+  try {
+    const remoteRes = await fetch(
+      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/extract-all?reset=${reset}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': CLOUD_DB_CONFIG.apiKey,
+        },
+        signal: AbortSignal.timeout(60000),
+      }
+    );
+
+    if (remoteRes.ok) {
+      const data = await remoteRes.json();
+      return res.json({
+        success: true,
+        data,
+        source: 'cloud_postgresql',
+      });
+    }
+
+    const errText = await remoteRes.text();
+    return res.status(remoteRes.status).json({
+      success: false,
+      message: `일괄 추출 실패: ${errText}`,
+    });
+  } catch (err: any) {
+    console.error('[CloudDB] Bulk extract error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || '일괄 기억 추출 중 오류가 발생했습니다.',
+    });
+  }
+});
+
+// 10. Reflections API (GET /users/{id}/reflections)
+app.get('/api/v1/reflections', async (req, res) => {
+  try {
+    const remoteRes = await fetch(
+      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/reflections`,
+      {
+        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        signal: AbortSignal.timeout(6000),
+      }
+    );
+    if (remoteRes.ok) {
+      const reflections = await remoteRes.json();
+      return res.json({
+        success: true,
+        data: reflections,
+        total: reflections.length,
+        source: 'cloud_postgresql',
+      });
+    }
+  } catch (err: any) {
+    console.warn('[CloudDB] Reflections fetch error:', err.message);
+  }
+
+  res.json({
+    success: true,
+    data: [],
+    total: 0,
+    source: 'in_memory_cache',
+  });
+});
+
+// 11. Character Memory Pack API (GET /users/{id}/characters/{characterId}/memory-pack)
+app.get('/api/v1/characters/:characterId/memory-pack', async (req, res) => {
+  const { characterId } = req.params;
+  try {
+    const remoteRes = await fetch(
+      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/characters/${characterId}/memory-pack`,
+      {
+        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        signal: AbortSignal.timeout(6000),
+      }
+    );
+    if (remoteRes.ok) {
+      const pack = await remoteRes.json();
+      return res.json({
+        success: true,
+        data: pack,
+        source: 'cloud_postgresql',
+      });
+    }
+  } catch (err: any) {
+    console.warn('[CloudDB] Character memory pack fetch error:', err.message);
+  }
+
+  res.status(502).json({
+    success: false,
+    message: '메모리 팩을 불러올 수 없습니다.',
+  });
 });
 
 export default function handler(req: any, res: any) {

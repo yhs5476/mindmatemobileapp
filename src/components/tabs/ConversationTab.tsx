@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChatMessage, RobotStatus } from '../../types';
+import { ChatMessage, MemoryFact, RobotStatus } from '../../types';
 import {
   Calendar,
   Search,
@@ -19,6 +19,10 @@ import {
   Sparkles,
   Info,
   CheckCircle2,
+  Loader2,
+  Star,
+  Globe,
+  Lock,
 } from 'lucide-react';
 
 interface ConversationTabProps {
@@ -34,6 +38,11 @@ interface ConversationTabProps {
   activeCharacter: 'study' | 'cooking';
   hasQueried: boolean;
   onPerformQuery: (date: string) => void;
+  facts: MemoryFact[];
+  isFactsLoading?: boolean;
+  isExtracting?: boolean;
+  onExtractSession: (sessionId?: string) => Promise<void>;
+  onExtractAllSessions: () => Promise<void>;
 }
 
 export const ConversationTab: React.FC<ConversationTabProps> = ({
@@ -49,6 +58,11 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
   activeCharacter,
   hasQueried,
   onPerformQuery,
+  facts = [],
+  isFactsLoading = false,
+  isExtracting = false,
+  onExtractSession,
+  onExtractAllSessions,
 }) => {
   // Local state for querying & editing
   const [inputDate, setInputDate] = useState<string>(selectedDate);
@@ -66,6 +80,18 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
   const [newSender, setNewSender] = useState<'user' | 'robot'>('user');
   const [newText, setNewText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+
+  // Extracted memory facts for the selected date or session
+  const currentSessionIds = Array.from(
+    new Set(messages.map((m) => m.sessionId).filter(Boolean))
+  ) as string[];
+
+  const dateFacts = facts.filter((f) => {
+    if (f.source_session_id && currentSessionIds.includes(f.source_session_id)) return true;
+    if (f.event_time === selectedDate) return true;
+    if (f.created_at && f.created_at.startsWith(selectedDate)) return true;
+    return false;
+  });
 
   const quickDates = [
     { label: '오늘', date: '2026-09-27' },
@@ -221,6 +247,152 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
       ) : (
         /* Queried Records Section */
         <section className="space-y-3">
+          {/* AI Long-term Memory Facts Panel (Mem0 Facts) */}
+          <div className="bg-[#FFFFFF] border border-[#D5E2D9] rounded-2xl p-3.5 space-y-3 shadow-[0_2px_8px_rgba(45,125,84,0.06)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#EAF5EF] text-[#2D7D54] flex items-center justify-center shrink-0 border border-[#CDE5D7]">
+                  <Brain className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-[#2D2926]">
+                      AI 장기기억 사실 (Mem0 Facts)
+                    </h4>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                        dateFacts.length > 0
+                          ? 'bg-[#EAF5EF] text-[#236845] border-[#CDE5D7]'
+                          : 'bg-[#FEF5E7] text-[#B45309] border-[#FCD9A2]'
+                      }`}
+                    >
+                      {dateFacts.length > 0 ? `${dateFacts.length}건 기억됨` : '기억 미추출'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#7A7268]">
+                    대화에서 LLM이 추출한 원자적 사실 및 실시간 pgvector 동기화
+                  </p>
+                </div>
+              </div>
+
+              {/* Extract Action Buttons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => onExtractSession()}
+                  disabled={isExtracting || messages.length === 0}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                    isExtracting
+                      ? 'bg-[#E4DDD2] text-[#8C8479] cursor-not-allowed'
+                      : dateFacts.length > 0
+                      ? 'bg-[#FAF8F5] hover:bg-[#EAE4D7] text-[#3D3730] border border-[#DDD7CD]'
+                      : 'bg-[#2D7D54] hover:bg-[#256643] text-[#FFFFFF] shadow-sm animate-pulse'
+                  }`}
+                  title="이 대화 세션에서 AI 장기기억 추출"
+                >
+                  {isExtracting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D7D54]" />
+                      <span>추출 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{dateFacts.length > 0 ? '기억 재추출' : '기억 추출하기'}</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={onExtractAllSessions}
+                  disabled={isExtracting}
+                  className="p-1.5 rounded-xl bg-[#FAF8F5] hover:bg-[#EFECE6] border border-[#DDD7CD] text-[#7A7268] hover:text-[#2D2926] transition-colors"
+                  title="전체 날짜 세션 장기기억 일괄 추출 (저비용)"
+                >
+                  <Database className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* In-progress Notification */}
+            {isExtracting && (
+              <div className="p-2.5 rounded-xl bg-[#EAF5EF] border border-[#CDE5D7] flex items-center gap-2 text-xs text-[#236845] animate-in fade-in">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0 text-[#2D7D54]" />
+                <span>
+                  대화 문맥을 분석하여 새 사실(ADD) 또는 갱신(UPDATE) 여부를 판단하는 중입니다...
+                </span>
+              </div>
+            )}
+
+            {/* Extracted Facts List */}
+            {dateFacts.length > 0 ? (
+              <div className="space-y-2 pt-1 border-t border-[#EFEAE0]">
+                {dateFacts.map((fact) => (
+                  <div
+                    key={fact.memory_id}
+                    className="bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl p-2.5 space-y-1.5 hover:border-[#2D7D54]/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between text-[10px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {fact.domain_tags?.map((tag, tIdx) => (
+                          <span
+                            key={tIdx}
+                            className="px-1.5 py-0.2 rounded-md bg-[#FFFFFF] border border-[#DDD7CD] font-medium text-[#236845]"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                        <span
+                          className={`px-1.5 py-0.2 rounded-md border font-medium ${
+                            fact.scope === 'character_private'
+                              ? 'bg-[#EEF4FB] text-[#2563EB] border-[#BCD9FA]'
+                              : 'bg-[#F3E8FF] text-[#7E22CE] border-[#E9D5FF]'
+                          }`}
+                        >
+                          {fact.scope === 'character_private'
+                            ? fact.owner_character_id === 'study'
+                              ? '📚 공부 전용'
+                              : '🍳 요리 전용'
+                            : '🌐 전체 공유'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[#8C8479] font-mono">
+                        <span>
+                          중요도{' '}
+                          {'★'.repeat(
+                            Math.min(5, Math.max(1, Math.round(fact.importance / 2)))
+                          )}
+                        </span>
+                        <span>신뢰도 {Math.round((fact.confidence || 0.9) * 100)}%</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-[#2D2926] leading-relaxed font-sans font-medium">
+                      {fact.content}
+                    </p>
+
+                    {fact.summary_for_prompt && (
+                      <p className="text-[10px] text-[#7A7268] bg-[#FFFFFF] rounded-md px-2 py-1 border border-[#E8E2D8]">
+                        <span className="font-semibold text-[#8C8479]">프롬프트 주입 요약: </span>
+                        {fact.summary_for_prompt}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-[#FAF8F5] border border-dashed border-[#DDD7CD] rounded-xl p-3 text-center space-y-1">
+                <p className="text-xs font-semibold text-[#38332E]">
+                  이 대화에서 아직 추출된 장기기억 사실이 없습니다.
+                </p>
+                <p className="text-[11px] text-[#7A7268]">
+                  상단의 <strong className="text-[#236845]">[기억 추출하기]</strong> 버튼을 누르면
+                  AI가 대화를 분석하여 중요한 학습 진도, 취향, 일정을 장기기억 DB에 저장합니다.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Controls Bar: Count, Filter, Search, New Record, Delete All */}
           <div className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-3 space-y-2.5 shadow-[0_2px_6px_rgba(180,170,155,0.05)]">
             <div className="flex items-center justify-between">
