@@ -32,7 +32,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onChangeTab }
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-800/90 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-[#FFFFFF]/95 backdrop-blur-lg border-t border-[#E8E2D8] pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
       <div className="max-w-md mx-auto grid grid-cols-3 h-16">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -43,12 +43,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onChangeTab }
               onClick={() => onChangeTab(tab.id)}
               className={`flex flex-col items-center justify-center relative transition-all duration-200 select-none ${
                 isActive
-                  ? 'text-emerald-400 font-semibold'
-                  : 'text-zinc-400 hover:text-zinc-200 active:scale-95'
+                  ? 'text-[#236845] font-bold'
+                  : 'text-[#827A70] hover:text-[#2D2926] active:scale-95'
               }`}
             >
               {isActive && (
-                <div className="absolute top-0 w-12 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                <div className="absolute top-0 w-12 h-0.5 bg-gradient-to-r from-[#2D7D54] to-[#48A375] rounded-full shadow-[0_0_8px_rgba(45,125,84,0.3)]" />
               )}
               <div className="relative mb-0.5">
                 <Icon
@@ -60,7 +60,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onChangeTab }
               <span className="text-[12px] tracking-tight leading-tight">{tab.label}</span>
               <span
                 className={`text-[9px] leading-none transition-colors ${
-                  isActive ? 'text-emerald-400/80' : 'text-zinc-500'
+                  isActive ? 'text-[#2D7D54]' : 'text-[#9E968B]'
                 }`}
               >
                 {tab.sublabel}

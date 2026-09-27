@@ -232,8 +232,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     <div className="flex flex-col min-h-[calc(100vh-8rem)] pb-28 max-w-md mx-auto px-4 py-4 space-y-5">
       {/* Save Success Alert Banner */}
       {saveSuccessMsg && (
-        <div className="bg-emerald-950/90 border border-emerald-500/60 rounded-xl p-3 flex items-center gap-2.5 text-emerald-300 text-xs font-semibold animate-in fade-in slide-in-from-top-2 shadow-lg">
-          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="bg-[#EAF5EF] border border-[#BCE2CD] rounded-xl p-3 flex items-center gap-2.5 text-[#236845] text-xs font-semibold animate-in fade-in slide-in-from-top-2 shadow-sm">
+          <CheckCircle className="w-4 h-4 text-[#2D7D54] shrink-0" />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
@@ -241,10 +241,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       {/* SECTION A: Character Selection (2 Dedicated Modes) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#7A7268] flex items-center gap-1.5">
             <span>A. 로봇 특화 캐릭터 모드</span>
           </h2>
-          <span className="text-[10px] text-zinc-400">페르소나 선택</span>
+          <span className="text-[10px] text-[#8C8479]">페르소나 선택</span>
         </div>
 
         <div className="grid grid-cols-1 gap-2.5">
@@ -253,8 +253,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={() => setCharacter('study')}
             className={`cursor-pointer rounded-2xl p-4 border transition-all relative overflow-hidden ${
               character === 'study'
-                ? 'bg-gradient-to-br from-blue-950/60 to-zinc-900 border-blue-500/80 shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/50'
-                : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700/80'
+                ? 'bg-[#F4F8FC] border-[#3B82F6] shadow-[0_2px_8px_rgba(59,130,246,0.12)] ring-1 ring-[#3B82F6]/50'
+                : 'bg-[#FFFFFF] border-[#E8E2D8] hover:border-[#D0C7B9]'
             }`}
           >
             <div className="flex items-start justify-between">
@@ -262,20 +262,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
                     character === 'study'
-                      ? 'bg-blue-500 text-zinc-950 font-bold'
-                      : 'bg-zinc-800 text-zinc-400'
+                      ? 'bg-[#3B82F6] text-white font-bold'
+                      : 'bg-[#FAF8F5] text-[#7A7268] border border-[#E2DBD0]'
                   }`}
                 >
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-zinc-100">📚 공부 메이트</h3>
-                    <span className="text-[10px] font-mono text-blue-400 px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/40">
+                    <h3 className="font-bold text-sm text-[#2D2926]">📚 공부 메이트</h3>
+                    <span className="text-[10px] font-mono text-[#2563EB] px-1.5 py-0.5 rounded bg-[#EEF4FB] border border-[#BCD9FA]">
                       Study Mate
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                  <p className="text-[11px] text-[#6B645C] mt-0.5">
                     차분하고 논리적인 톤, 집중을 돕는 간결한 피드백
                   </p>
                 </div>
@@ -284,8 +284,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <div
                 className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
                   character === 'study'
-                    ? 'border-blue-500 bg-blue-500 text-zinc-950'
-                    : 'border-zinc-700 bg-zinc-800'
+                    ? 'border-[#3B82F6] bg-[#3B82F6] text-white'
+                    : 'border-[#DDD7CD] bg-[#FAF8F5]'
                 }`}
               >
                 {character === 'study' && <Check className="w-3 h-3 stroke-[3]" />}
@@ -298,8 +298,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={() => setCharacter('cooking')}
             className={`cursor-pointer rounded-2xl p-4 border transition-all relative overflow-hidden ${
               character === 'cooking'
-                ? 'bg-gradient-to-br from-orange-950/60 to-zinc-900 border-orange-500/80 shadow-[0_0_15px_rgba(249,115,22,0.15)] ring-1 ring-orange-500/50'
-                : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700/80'
+                ? 'bg-[#FFF7F2] border-[#EA580C] shadow-[0_2px_8px_rgba(234,88,12,0.12)] ring-1 ring-[#EA580C]/50'
+                : 'bg-[#FFFFFF] border-[#E8E2D8] hover:border-[#D0C7B9]'
             }`}
           >
             <div className="flex items-start justify-between">
@@ -307,20 +307,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
                     character === 'cooking'
-                      ? 'bg-orange-500 text-zinc-950 font-bold'
-                      : 'bg-zinc-800 text-zinc-400'
+                      ? 'bg-[#EA580C] text-white font-bold'
+                      : 'bg-[#FAF8F5] text-[#7A7268] border border-[#E2DBD0]'
                   }`}
                 >
                   <Utensils className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-zinc-100">🍳 요리 메이트</h3>
-                    <span className="text-[10px] font-mono text-orange-400 px-1.5 py-0.5 rounded bg-orange-950/80 border border-orange-800/40">
+                    <h3 className="font-bold text-sm text-[#2D2926]">🍳 요리 메이트</h3>
+                    <span className="text-[10px] font-mono text-[#EA580C] px-1.5 py-0.5 rounded bg-[#FFF0E6] border border-[#FCD2B5]">
                       Cooking Mate
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                  <p className="text-[11px] text-[#6B645C] mt-0.5">
                     활기차고 명확한 톤, 조리 순서 가이드 및 타이머
                   </p>
                 </div>
@@ -329,8 +329,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <div
                 className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
                   character === 'cooking'
-                    ? 'border-orange-500 bg-orange-500 text-zinc-950'
-                    : 'border-zinc-700 bg-zinc-800'
+                    ? 'border-[#EA580C] bg-[#EA580C] text-white'
+                    : 'border-[#DDD7CD] bg-[#FAF8F5]'
                 }`}
               >
                 {character === 'cooking' && <Check className="w-3 h-3 stroke-[3]" />}
@@ -341,22 +341,22 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       </section>
 
       {/* SECTION B: Custom MP3 Voice Training & Cloning Studio */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+      <section className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-4 space-y-4 shadow-[0_2px_8px_rgba(180,170,155,0.06)]">
+        <div className="flex items-center justify-between border-b border-[#EFEAE0] pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
-              <Mic className="w-4 h-4" />
+            <div className="p-1.5 rounded-lg bg-[#EAF5EF] text-[#236845]">
+              <Mic className="w-4 h-4 text-[#2D7D54]" />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+              <h2 className="text-xs font-bold text-[#2D2926] flex items-center gap-1.5">
                 <span>B. MP3 파일 음성 학습 (AI 보이스 클로닝)</span>
               </h2>
-              <p className="text-[10px] text-zinc-400">
+              <p className="text-[10px] text-[#7A7268]">
                 기존 음성 프리셋 대신 MP3 음성 파일로 로봇의 목소리를 직접 학습시킵니다.
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+          <span className="text-[10px] font-mono text-[#236845] bg-[#EAF5EF] px-2 py-0.5 rounded-full border border-[#CDE5D7]">
             Few-Shot TTS
           </span>
         </div>
@@ -364,10 +364,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {/* 1. MP3 File Upload & Dropzone Area */}
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-300">
+            <span className="text-xs font-semibold text-[#38332E]">
               학습용 목소리 MP3 파일 업로드
             </span>
-            <span className="text-[10px] text-zinc-400">.mp3 / .wav / .m4a 지원</span>
+            <span className="text-[10px] text-[#8C8479]">.mp3 / .wav / .m4a 지원</span>
           </div>
 
           {/* Hidden File Input */}
@@ -382,22 +382,22 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           {/* Upload Drop Card */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-zinc-700/80 hover:border-emerald-500/60 rounded-2xl p-4 bg-zinc-950/60 text-center cursor-pointer transition-all hover:bg-zinc-950/90 group"
+            className="border-2 border-dashed border-[#DDD7CD] hover:border-[#2D7D54] rounded-2xl p-4 bg-[#FAF8F5] text-center cursor-pointer transition-all hover:bg-[#F3EFE6] group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-zinc-850 group-hover:bg-emerald-500/20 text-zinc-400 group-hover:text-emerald-400 flex items-center justify-center mx-auto mb-2 transition-colors">
+            <div className="w-10 h-10 rounded-2xl bg-[#EFECE6] group-hover:bg-[#EAF5EF] text-[#7A7268] group-hover:text-[#236845] flex items-center justify-center mx-auto mb-2 transition-colors">
               <UploadCloud className="w-5 h-5" />
             </div>
-            <p className="text-xs font-semibold text-zinc-200">
+            <p className="text-xs font-semibold text-[#2D2926]">
               클릭하여 내 기기의 음성 MP3 파일 선택
             </p>
-            <p className="text-[11px] text-zinc-400 mt-0.5">
+            <p className="text-[11px] text-[#7A7268] mt-0.5">
               30초 이상의 깨끗한 육성 녹음 파일이 가장 이상적입니다.
             </p>
           </div>
 
           {/* Sample Preset Audio Files Quick Pick */}
           <div className="space-y-1.5 pt-1">
-            <span className="text-[11px] text-zinc-400 block font-medium">
+            <span className="text-[11px] text-[#827A70] block font-medium">
               또는 준비된 샘플 음성 MP3 즉시 선택:
             </span>
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -417,8 +417,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     }}
                     className={`text-[11px] px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 shrink-0 transition-all ${
                       isSelected
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-semibold'
-                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                        ? 'bg-[#EAF5EF] border-[#2D7D54] text-[#236845] font-bold'
+                        : 'bg-[#FAF8F5] border-[#E4DDD2] text-[#6E675E] hover:text-[#2D2926] hover:bg-[#EDE7DC]'
                     }`}
                   >
                     <FileAudio className="w-3.5 h-3.5" />
@@ -431,31 +431,31 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
 
           {/* Selected File Details Card */}
-          <div className="bg-zinc-950/80 border border-zinc-800 rounded-xl p-3 flex items-center justify-between">
+          <div className="bg-[#FAF8F5] border border-[#E2DBD0] rounded-xl p-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <div className="p-2 rounded-lg bg-[#EAF5EF] text-[#236845] border border-[#CDE5D7]">
                 <FileAudio className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs font-semibold text-zinc-200 block truncate max-w-[200px]">
+                <span className="text-xs font-semibold text-[#2D2926] block truncate max-w-[200px]">
                   {selectedFileName}
                 </span>
-                <span className="text-[10px] text-zinc-400 font-mono">
+                <span className="text-[10px] text-[#7A7268] font-mono">
                   {fileSizeMb} MB · 약 {fileDurationSec}초 재생
                 </span>
               </div>
             </div>
 
-            <span className="text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-[10px] text-[#236845] bg-[#EAF5EF] border border-[#CDE5D7] px-2 py-0.5 rounded-full font-medium">
               준비 완료
             </span>
           </div>
         </div>
 
         {/* 2. Voice Training Configuration Form */}
-        <div className="space-y-3 pt-2 border-t border-zinc-800">
+        <div className="space-y-3 pt-2 border-t border-[#EFEAE0]">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-300 block">
+            <label className="text-xs font-medium text-[#38332E] block">
               학습할 목소리 모델 이름
             </label>
             <input
@@ -463,18 +463,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               value={customVoiceName}
               onChange={(e) => setCustomVoiceName(e.target.value)}
               placeholder="예: 내 차분한 공부 목소리 v1"
-              className="w-full bg-zinc-950 border border-zinc-750 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+              className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-xl px-3 py-2 text-xs text-[#2D2926] placeholder-[#A0988E] focus:outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             {/* Target Mode */}
             <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-300 block">적용할 페르소나</label>
+              <label className="text-xs font-medium text-[#38332E] block">적용할 페르소나</label>
               <select
                 value={targetCharacter}
                 onChange={(e) => setTargetCharacter(e.target.value as CharacterMode)}
-                className="w-full bg-zinc-950 border border-zinc-750 focus:border-emerald-500 rounded-xl px-2.5 py-2 text-xs text-zinc-100 appearance-none focus:outline-none cursor-pointer"
+                className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-xl px-2.5 py-2 text-xs text-[#2D2926] appearance-none focus:outline-none cursor-pointer"
               >
                 <option value="study">📚 공부 메이트</option>
                 <option value="cooking">🍳 요리 메이트</option>
@@ -483,11 +483,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
             {/* Tone Style */}
             <div className="space-y-1">
-              <label className="text-xs font-medium text-zinc-300 block">음향 감정 톤</label>
+              <label className="text-xs font-medium text-[#38332E] block">음향 감정 톤</label>
               <select
                 value={toneStyle}
                 onChange={(e) => setToneStyle(e.target.value as 'calm' | 'energetic' | 'warm')}
-                className="w-full bg-zinc-950 border border-zinc-750 focus:border-emerald-500 rounded-xl px-2.5 py-2 text-xs text-zinc-100 appearance-none focus:outline-none cursor-pointer"
+                className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-xl px-2.5 py-2 text-xs text-[#2D2926] appearance-none focus:outline-none cursor-pointer"
               >
                 <option value="calm">차분함 / 중저음</option>
                 <option value="energetic">활기참 / 높은 명료도</option>
@@ -498,40 +498,40 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
           {/* AI Voice Training Action Button & Progress */}
           {isTraining ? (
-            <div className="bg-zinc-950 border border-emerald-500/50 rounded-2xl p-4 space-y-3 animate-in fade-in">
+            <div className="bg-[#FAF8F5] border border-[#BCE2CD] rounded-2xl p-4 space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-emerald-400 flex items-center gap-2">
+                <span className="font-semibold text-[#236845] flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   {trainingStep === 1 && '1/4 오디오 잡음 제거 및 정규화 진행 중...'}
                   {trainingStep === 2 && '2/4 성문 음향 특징 및 음성 임베딩 추출 중...'}
                   {trainingStep === 3 && '3/4 Zero-Shot 뉴럴 TTS 모델 미세조정(Fine-tuning)...'}
                   {trainingStep === 4 && '4/4 MindMate 로봇 음성 모듈에 배포 중...'}
                 </span>
-                <span className="font-mono text-emerald-300 font-bold">{trainingProgress}%</span>
+                <span className="font-mono text-[#236845] font-bold">{trainingProgress}%</span>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-zinc-850 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-[#E5DFD4] rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+                  className="bg-[#2D7D54] h-full rounded-full transition-all duration-300"
                   style={{ width: `${trainingProgress}%` }}
                 />
               </div>
 
-              <div className="grid grid-cols-4 gap-1 text-[10px] text-zinc-400 text-center font-mono">
-                <span className={trainingStep >= 1 ? 'text-emerald-400 font-semibold' : ''}>전처리</span>
-                <span className={trainingStep >= 2 ? 'text-emerald-400 font-semibold' : ''}>특징추출</span>
-                <span className={trainingStep >= 3 ? 'text-emerald-400 font-semibold' : ''}>AI학습</span>
-                <span className={trainingStep >= 4 ? 'text-emerald-400 font-semibold' : ''}>로봇탑재</span>
+              <div className="grid grid-cols-4 gap-1 text-[10px] text-[#8C8479] text-center font-mono">
+                <span className={trainingStep >= 1 ? 'text-[#236845] font-bold' : ''}>전처리</span>
+                <span className={trainingStep >= 2 ? 'text-[#236845] font-bold' : ''}>특징추출</span>
+                <span className={trainingStep >= 3 ? 'text-[#236845] font-bold' : ''}>AI학습</span>
+                <span className={trainingStep >= 4 ? 'text-[#236845] font-bold' : ''}>로봇탑재</span>
               </div>
             </div>
           ) : (
             <button
               type="button"
               onClick={handleStartTraining}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-zinc-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#2D7D54] to-[#399665] hover:from-[#256643] hover:to-[#2D7D54] active:scale-[0.98] text-[#FFFFFF] font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
             >
-              <Sparkles className="w-4 h-4 fill-zinc-950" />
+              <Sparkles className="w-4 h-4 fill-white" />
               <span>[MP3 파일로 AI 목소리 학습 시작하기 🚀]</span>
             </button>
           )}
@@ -541,21 +541,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       {/* SECTION C: Trained Voice Models List (학습 완료된 목소리 목록) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-emerald-400" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#7A7268] flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-[#2D7D54]" />
             <span>학습 완료된 커스텀 목소리 목록</span>
           </h2>
-          <span className="text-[10px] text-zinc-400 font-mono">
+          <span className="text-[10px] text-[#8C8479] font-mono">
             총 {trainedModels.length}개 모델
           </span>
         </div>
 
         {isModelsLoading ? (
-          <div className="p-6 text-center text-xs text-zinc-400">
+          <div className="p-6 text-center text-xs text-[#7A7268]">
             목소리 모델 불러오는 중...
           </div>
         ) : trainedModels.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center text-xs text-zinc-400">
+          <div className="bg-[#FAF8F5] border border-[#E8E2D8] rounded-2xl p-6 text-center text-xs text-[#7A7268]">
             학습된 커스텀 목소리가 없습니다. 상단에서 MP3 파일을 업로드하여 목소리를 학습시켜보세요.
           </div>
         ) : (
@@ -571,8 +571,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   onClick={() => setActiveModelId(model.id)}
                   className={`cursor-pointer rounded-2xl p-4 border transition-all space-y-3 relative overflow-hidden ${
                     isSelected
-                      ? 'bg-zinc-900 border-emerald-500/80 shadow-md ring-1 ring-emerald-500/40'
-                      : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700/80'
+                      ? 'bg-[#FFFFFF] border-[#2D7D54] shadow-[0_2px_8px_rgba(45,125,84,0.12)] ring-1 ring-[#2D7D54]/30'
+                      : 'bg-[#FFFFFF] border-[#E8E2D8] hover:border-[#D0C7B9]'
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -580,22 +580,22 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       <div
                         className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
                           isSelected
-                            ? 'bg-emerald-500 text-zinc-950 font-bold'
-                            : 'bg-zinc-800 text-zinc-400'
+                            ? 'bg-[#2D7D54] text-white font-bold'
+                            : 'bg-[#FAF8F5] text-[#7A7268] border border-[#E2DBD0]'
                         }`}
                       >
                         <Mic className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-xs text-zinc-100">{model.name}</h4>
+                          <h4 className="font-bold text-xs text-[#2D2926]">{model.name}</h4>
                           {isSelected && (
-                            <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-1.5 py-0.2 rounded">
+                            <span className="text-[10px] font-semibold text-[#236845] bg-[#EAF5EF] border border-[#BCE2CD] px-1.5 py-0.2 rounded">
                               현재 적용 중
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                        <p className="text-[10px] text-[#7A7268] font-mono mt-0.5">
                           {model.fileName} · 음성 유사도 {model.similarityScore}%
                         </p>
                       </div>
@@ -606,7 +606,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       <button
                         onClick={(e) => handleDeleteModel(model.id, e)}
                         title="이 모델 삭제"
-                        className="p-1 rounded-lg hover:bg-rose-950/60 text-zinc-400 hover:text-rose-400 transition-colors"
+                        className="p-1 rounded-lg hover:bg-[#FEE2E2] text-[#8C8479] hover:text-[#DC2626] transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -614,8 +614,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       <div
                         className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
                           isSelected
-                            ? 'border-emerald-500 bg-emerald-500 text-zinc-950'
-                            : 'border-zinc-700 bg-zinc-800'
+                            ? 'border-[#2D7D54] bg-[#2D7D54] text-white'
+                            : 'border-[#DDD7CD] bg-[#FAF8F5]'
                         }`}
                       >
                         {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -624,12 +624,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   </div>
 
                   {/* Sample Phrase Bubble & Audio Preview */}
-                  <div className="bg-zinc-950/80 border border-zinc-800/90 rounded-xl p-3 flex items-center justify-between gap-3">
+                  <div className="bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl p-3 flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] text-zinc-400 block mb-0.5">
+                      <span className="text-[10px] text-[#8C8479] block mb-0.5">
                         학습된 합성 샘플:
                       </span>
-                      <p className="text-xs text-zinc-200 italic truncate font-sans">
+                      <p className="text-xs text-[#2D2926] italic truncate font-sans">
                         "{model.samplePhrase}"
                       </p>
                     </div>
@@ -642,8 +642,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       }}
                       className={`p-2 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                         isPlaying
-                          ? 'bg-rose-500 text-white animate-pulse'
-                          : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold active:scale-95'
+                          ? 'bg-[#DC2626] text-white animate-pulse'
+                          : 'bg-[#2D7D54] hover:bg-[#256643] text-white font-bold active:scale-95'
                       }`}
                       title={isPlaying ? '정지' : '미리듣기'}
                     >
@@ -656,20 +656,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   </div>
 
                   {/* Meta tags */}
-                  <div className="flex items-center gap-1.5 pt-1 text-[10px] text-zinc-400">
+                  <div className="flex items-center gap-1.5 pt-1 text-[10px] text-[#7A7268]">
                     <span
                       className={`px-2 py-0.5 rounded-full border ${
                         isStudy
-                          ? 'bg-blue-950/60 text-blue-300 border-blue-500/30'
-                          : 'bg-orange-950/60 text-orange-300 border-orange-500/30'
+                          ? 'bg-[#EEF4FB] text-[#2563EB] border-[#BCD9FA]'
+                          : 'bg-[#FFF0E6] text-[#EA580C] border-[#FCD2B5]'
                       }`}
                     >
                       {isStudy ? '📚 공부용' : '🍳 요리용'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700/50">
+                    <span className="px-2 py-0.5 rounded-full bg-[#FAF8F5] border border-[#E2DBD0] text-[#6E675E]">
                       톤: {model.toneStyle === 'calm' ? '차분함' : model.toneStyle === 'energetic' ? '활기참' : '따뜻함'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700/50 font-mono">
+                    <span className="px-2 py-0.5 rounded-full bg-[#FAF8F5] border border-[#E2DBD0] font-mono text-[#6E675E]">
                       {model.createdAt}
                     </span>
                   </div>
@@ -681,20 +681,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       </section>
 
       {/* SECTION D: Speed and Pitch Tuning */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-            <Sliders className="w-4 h-4 text-emerald-400" />
+      <section className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-4 space-y-4 shadow-[0_2px_8px_rgba(180,170,155,0.06)]">
+        <div className="flex items-center justify-between border-b border-[#EFEAE0] pb-2.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[#7A7268] flex items-center gap-1.5">
+            <Sliders className="w-4 h-4 text-[#2D7D54]" />
             <span>D. 음성 발화 속도 및 음높이 미세조절</span>
           </h2>
-          <span className="text-[10px] text-zinc-400 font-mono">실시간 적용</span>
+          <span className="text-[10px] text-[#8C8479] font-mono">실시간 적용</span>
         </div>
 
         {/* Speed Slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300 font-medium">말하기 속도</span>
-            <span className="font-mono text-emerald-400 font-bold">{speed.toFixed(1)}x</span>
+            <span className="text-[#38332E] font-semibold">말하기 속도</span>
+            <span className="font-mono text-[#236845] font-bold">{speed.toFixed(1)}x</span>
           </div>
 
           <div className="space-y-1">
@@ -705,9 +705,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               step="0.1"
               value={speed}
               onChange={(e) => setSpeed(parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 bg-zinc-800 rounded-lg h-1.5 cursor-pointer"
+              className="w-full accent-[#2D7D54] bg-[#E8E2D8] rounded-lg h-1.5 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-zinc-400 px-0.5">
+            <div className="flex justify-between text-[10px] text-[#8C8479] px-0.5">
               <span>느림 (0.7x)</span>
               <span>보통 (1.0x)</span>
               <span>빠름 (1.5x)</span>
@@ -718,8 +718,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {/* Pitch Slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-300 font-medium">음높이 (Pitch)</span>
-            <span className="font-mono text-emerald-400 font-bold">{pitch.toFixed(1)}</span>
+            <span className="text-[#38332E] font-semibold">음높이 (Pitch)</span>
+            <span className="font-mono text-[#236845] font-bold">{pitch.toFixed(1)}</span>
           </div>
 
           <div className="space-y-1">
@@ -730,9 +730,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               step="0.05"
               value={pitch}
               onChange={(e) => setPitch(parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 bg-zinc-800 rounded-lg h-1.5 cursor-pointer"
+              className="w-full accent-[#2D7D54] bg-[#E8E2D8] rounded-lg h-1.5 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-zinc-400 px-0.5">
+            <div className="flex justify-between text-[10px] text-[#8C8479] px-0.5">
               <span>낮음 (0.8)</span>
               <span>표준 (1.0)</span>
               <span>높음 (1.2)</span>
@@ -746,12 +746,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         <button
           onClick={handleSave}
           disabled={isLoading}
-          className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-zinc-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-3.5 px-4 rounded-xl bg-[#2D7D54] hover:bg-[#256643] active:scale-[0.98] text-[#FFFFFF] font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Sparkles className="w-4 h-4 fill-zinc-950" />
+          <Sparkles className="w-4 h-4 fill-white" />
           <span>[설정 저장 및 로봇 실시간 동기화]</span>
         </button>
-        <p className="text-[10px] text-center text-zinc-400 mt-2">
+        <p className="text-[10px] text-center text-[#8C8479] mt-2">
           저장 시 MindMate 로봇에 선택된 학습 목소리와 발화 속도가 즉시 동기화됩니다.
         </p>
       </div>

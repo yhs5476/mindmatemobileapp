@@ -264,10 +264,10 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#2D2926] flex flex-col justify-between">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-zinc-850/95 text-emerald-300 text-xs font-semibold border border-zinc-700 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 pointer-events-none text-center max-w-[90vw]">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-[#2D2926]/90 text-[#FAF8F5] text-xs font-semibold border border-[#443F3B] shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 pointer-events-none text-center max-w-[90vw]">
           {toastMessage}
         </div>
       )}
