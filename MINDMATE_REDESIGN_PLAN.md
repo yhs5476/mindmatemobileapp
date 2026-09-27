@@ -14,20 +14,20 @@
 
 ## 📋 단계별 실행 체크리스트 (Phase-by-Phase Roadmap)
 
-### [Phase 1] 대화 관리 탭 & 장기기억(Facts) 추출 파이프라인 연동
+### [Phase 1] 대화 관리 탭 & 장기기억(Facts) 추출 파이프라인 연동 (✅ 완료)
 > **목표:** 날짜별 대화 원본 세션과 함께 해당 세션에서 도출된 사실(Facts)을 한눈에 파악하고, 미추출 세션은 원클릭으로 추출할 수 있게 구현.
 
-- [ ] **1.1. 프록시 API 엔드포인트 확장 (`api/index.ts`)**
-  - [ ] `GET /api/users/:userId/facts`: 사용자 전체 또는 세션 연관 장기기억 사실 조회
-  - [ ] `POST /api/users/:userId/sessions/:sessionId/extract`: 특정 세션의 AI 기억 추출 트리거
-  - [ ] `POST /api/users/:userId/extract-all`: 전체 세션 일괄 추출 트리거
-- [ ] **1.2. 대화 세션 카드 UI 고도화 (`src/components/ConversationList.tsx`)**
-  - [ ] 각 세션 카드 상단에 `[기억 추출 완료 N건]` 또는 `[기억 미추출]` 배지 표시
-  - [ ] 세션 하단에 추출된 사실 칩(Chip) 아코디언 배치 (`🌱 선호: 매운 떡볶이`, `⏰ 일정: 화요일 토익 시험`)
-  - [ ] 미추출 세션에 `[AI 기억 추출하기 (LLM)]` 원클릭 버튼 제공
-- [ ] **1.3. 추출 결과 인라인 피드백 모달/알림**
-  - [ ] Mem0 액션별(`ADD`, `UPDATE`, `NOOP`, `CONFLICT`) 추출 결과 통계 다이얼로그
-  - [ ] 갱신된 사실 즉시 로컬 상태 및 뱃지에 반영
+- [x] **1.1. 프록시 API 엔드포인트 확장 (`api/index.ts`)**
+  - [x] `GET /api/v1/facts`: 사용자 전체 또는 세션 연관 장기기억 사실 조회
+  - [x] `POST /api/v1/sessions/:sessionId/extract`: 특정 세션의 AI 기억 추출 트리거
+  - [x] `POST /api/v1/facts/extract-all`: 전체 세션 일괄 추출 트리거
+- [x] **1.2. 대화 세션 카드 UI 고도화 (`src/components/tabs/ConversationTab.tsx`)**
+  - [x] 세션 상단에 `AI 장기기억 사실 (Mem0 Facts)` 패널 및 `[N건 기억됨]` / `[기억 미추출]` 배지 표시
+  - [x] 추출된 사실 칩(Chip) 표시 (`#영어`, `#영단어`, `중요도 ★`, `신뢰도 %`, `📚 공부 전용 / 🌐 전체 공유`)
+  - [x] `[기억 추출하기]` 및 `[전체 일괄 추출]` 원클릭 트리거 버튼
+- [x] **1.3. 추출 결과 인라인 피드백 및 실시간 갱신**
+  - [x] 실시간 추출 진행 상태 피드백 (스피너 & 토스트 메시지)
+  - [x] 갱신된 사실 즉시 로컬 상태 및 UI 반영
 
 ---
 
