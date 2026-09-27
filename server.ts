@@ -62,6 +62,34 @@ let trainedVoiceModels: TrainedVoiceModel[] = [
     toneStyle: 'energetic',
     pitchOffset: 1.05,
   },
+  {
+    id: 'voice-model-3',
+    name: '심야 서재 멘토 보이스 (부드러운 저음)',
+    fileName: 'deep_night_mentor.mp3',
+    fileSizeMb: 3.1,
+    durationSec: 48,
+    characterTarget: 'study',
+    similarityScore: 98.1,
+    status: 'ready',
+    createdAt: '2026-09-24 22:30',
+    samplePhrase: '오늘 하루도 수고 많으셨습니다. 가벼운 복습으로 오늘의 학습을 정리해보세요.',
+    toneStyle: 'warm',
+    pitchOffset: 0.9,
+  },
+  {
+    id: 'voice-model-4',
+    name: '셰프 마르코 파스타 가이드 (명료한 낭독)',
+    fileName: 'chef_marco_voice.mp3',
+    fileSizeMb: 2.0,
+    durationSec: 32,
+    characterTarget: 'cooking',
+    similarityScore: 95.8,
+    status: 'ready',
+    createdAt: '2026-09-24 11:15',
+    samplePhrase: '팬에 올리브유를 두르고 마늘이 노릇해질 때까지 약불에서 천천히 향을 뽑아냅니다.',
+    toneStyle: 'energetic',
+    pitchOffset: 1.0,
+  },
 ];
 
 let robotProfile: RobotProfile = {
@@ -73,9 +101,9 @@ let robotProfile: RobotProfile = {
   updatedAt: new Date().toISOString(),
 };
 
-// Seed chat conversations by date
+// Seed chat conversations by date (Long-term memory DB)
 let chats: ChatMessage[] = [
-  // Today's chats (2026-09-27)
+  // 1. Today's chats (2026-09-27) - 공부 메이트 중심
   {
     id: 'msg-1',
     date: '2026-09-27',
@@ -124,10 +152,42 @@ let chats: ChatMessage[] = [
     text: '고마워, 물 한 잔 마시고 올게',
     edited: false,
   },
-
-  // Yesterday's chats (2026-09-26)
   {
     id: 'msg-7',
+    date: '2026-09-27',
+    time: '14:38',
+    sender: 'user',
+    text: '방금 외운 단어 3개 테스트해줘',
+    edited: true,
+  },
+  {
+    id: 'msg-8',
+    date: '2026-09-27',
+    time: '14:38',
+    sender: 'robot',
+    text: "좋아요! 첫 번째 질문입니다. '신중한, 빈틈없는'을 뜻하는 m으로 시작하는 형용사는 무엇일까요?",
+    edited: false,
+  },
+  {
+    id: 'msg-9',
+    date: '2026-09-27',
+    time: '14:39',
+    sender: 'user',
+    text: 'meticulous 맞아?',
+    edited: false,
+  },
+  {
+    id: 'msg-10',
+    date: '2026-09-27',
+    time: '14:39',
+    sender: 'robot',
+    text: '정답입니다! meticulous는 토익 빈출 어휘예요. 바로 다음 2번째 단어로 넘어갈까요?',
+    edited: false,
+  },
+
+  // 2. Yesterday's chats (2026-09-26) - 요리 메이트 중심
+  {
+    id: 'msg-11',
     date: '2026-09-26',
     time: '12:15',
     sender: 'user',
@@ -135,7 +195,7 @@ let chats: ChatMessage[] = [
     edited: false,
   },
   {
-    id: 'msg-8',
+    id: 'msg-12',
     date: '2026-09-26',
     time: '12:15',
     sender: 'robot',
@@ -143,7 +203,7 @@ let chats: ChatMessage[] = [
     edited: false,
   },
   {
-    id: 'msg-9',
+    id: 'msg-13',
     date: '2026-09-26',
     time: '12:16',
     sender: 'user',
@@ -151,17 +211,49 @@ let chats: ChatMessage[] = [
     edited: false,
   },
   {
-    id: 'msg-10',
+    id: 'msg-14',
+    date: '2026-09-26',
+    time: '12:16',
+    sender: 'robot',
+    text: '7분 타이머를 시작합니다. 끓는 물에 굵은 소금 반 스푼 넣으셨는지 확인해주세요!',
+    edited: false,
+  },
+  {
+    id: 'msg-15',
+    date: '2026-09-26',
+    time: '12:20',
+    sender: 'user',
+    text: '마늘은 언제 넣어야 타지 않아?',
+    edited: false,
+  },
+  {
+    id: 'msg-16',
+    date: '2026-09-26',
+    time: '12:20',
+    sender: 'robot',
+    text: '팬을 달구기 전 오일에 편마늘을 넣고, 약불에서 은은하게 황금빛이 돌 때까지 볶아주세요.',
+    edited: false,
+  },
+  {
+    id: 'msg-17',
     date: '2026-09-26',
     time: '12:23',
     sender: 'robot',
     text: '띵동! 7분 타이머가 끝났습니다. 면수를 한 국자 남겨두고 면을 건져주세요.',
     edited: true,
   },
-
-  // Previous date (2026-09-25)
   {
-    id: 'msg-11',
+    id: 'msg-18',
+    date: '2026-09-26',
+    time: '12:24',
+    sender: 'user',
+    text: '알겠어, 올리브유 넣고 유화(에멀전) 작업 들어갈게',
+    edited: false,
+  },
+
+  // 3. Previous date (2026-09-25) - 코딩 및 알고리즘 학습
+  {
+    id: 'msg-19',
     date: '2026-09-25',
     time: '09:10',
     sender: 'user',
@@ -169,17 +261,100 @@ let chats: ChatMessage[] = [
     edited: false,
   },
   {
-    id: 'msg-12',
+    id: 'msg-20',
     date: '2026-09-25',
     time: '09:10',
     sender: 'robot',
-    text: '좋은 아침이에요! 오전 10시 팀 싱크, 오후 2시 코드 리뷰 일정이 등록되어 있습니다.',
+    text: '좋은 아침이에요! 오전 10시 알고리즘 스터디, 오후 2시 코딩 테스트 모의고사가 예정되어 있습니다.',
+    edited: false,
+  },
+  {
+    id: 'msg-21',
+    date: '2026-09-25',
+    time: '10:15',
+    sender: 'user',
+    text: '이진 탐색 시간 복잡도가 왜 O(log N)인지 쉽게 설명해줘',
+    edited: true,
+  },
+  {
+    id: 'msg-22',
+    date: '2026-09-25',
+    time: '10:15',
+    sender: 'robot',
+    text: '탐색을 한 번 진행할 때마다 남은 데이터가 절반으로 줄어들기 때문이에요. 1,000개의 데이터도 단 10번 만에 찾을 수 있습니다.',
+    edited: false,
+  },
+  {
+    id: 'msg-23',
+    date: '2026-09-25',
+    time: '11:30',
+    sender: 'user',
+    text: '오후 세션 전까지 DP(동적계획법) 문제 2개 먼저 풀어볼게',
+    edited: false,
+  },
+  {
+    id: 'msg-24',
+    date: '2026-09-25',
+    time: '11:30',
+    sender: 'robot',
+    text: '피보나치 수열과 계단 오르기 기본 문제를 추천드려요. 40분 타이머를 설정해둘까요?',
+    edited: false,
+  },
+
+  // 4. 2026-09-24 - 스테이크 조리 테크닉
+  {
+    id: 'msg-25',
+    date: '2026-09-24',
+    time: '18:30',
+    sender: 'user',
+    text: '두께 3cm 소고기 안심 스테이크 굽는 법 알려줘',
+    edited: false,
+  },
+  {
+    id: 'msg-26',
+    date: '2026-09-24',
+    time: '18:30',
+    sender: 'robot',
+    text: '고기 겉면 수분을 키친타월로 완전히 닦아낸 뒤, 팬에서 연기가 살짝 날 때까지 강불로 충분히 예열해주세요.',
+    edited: false,
+  },
+  {
+    id: 'msg-27',
+    date: '2026-09-24',
+    time: '18:34',
+    sender: 'user',
+    text: '시어링할 때 얼마나 자주 뒤집어야 해?',
+    edited: false,
+  },
+  {
+    id: 'msg-28',
+    date: '2026-09-24',
+    time: '18:34',
+    sender: 'robot',
+    text: '30초~1분 간격으로 자주 뒤집어주면 겉은 바삭한 마이야르가 생기고 속은 고르게 익어 부드러운 미디움 레어가 됩니다.',
+    edited: false,
+  },
+  {
+    id: 'msg-29',
+    date: '2026-09-24',
+    time: '18:37',
+    sender: 'user',
+    text: '버터랑 로즈마리 넣고 끼얹는 타이밍은 언제야?',
+    edited: false,
+  },
+  {
+    id: 'msg-30',
+    date: '2026-09-24',
+    time: '18:37',
+    sender: 'robot',
+    text: '불을 중약불로 낮추고 버터 2조각, 으깬 마늘, 로즈마리를 넣고 녹은 버터를 고기에 끼얹는 아로제(Arroser)를 1분간 진행하세요.',
     edited: false,
   },
 ];
 
-// Seed proactive intervention logs
+// Seed proactive intervention logs (선제 개입 이력)
 let proactiveLogs: ProactiveLog[] = [
+  // 1. Today (2026-09-27) - 총 8건 (공부 5건, 요리 3건, 반응 6건 -> 75% 반응률)
   {
     id: 'act-1',
     date: '2026-09-27',
@@ -203,6 +378,26 @@ let proactiveLogs: ProactiveLog[] = [
   {
     id: 'act-3',
     date: '2026-09-27',
+    time: '12:45',
+    mode: 'cooking',
+    type: '화력 조절 알림',
+    reason: '팬 과열 및 고온 연기 감지',
+    utterance: '팬 온도가 급격히 올라가고 있어요. 올리브유가 타기 전에 불을 중약불로 낮춰주세요.',
+    userResponded: true,
+  },
+  {
+    id: 'act-4',
+    date: '2026-09-27',
+    time: '12:23',
+    mode: 'cooking',
+    type: '타이머 종료 경보',
+    reason: '스파게티 면 삶기 7분 타이머 종료',
+    utterance: '띵동! 7분 알덴테 조리 시간이 완료되었습니다. 면수를 덜고 면을 건져내세요.',
+    userResponded: true,
+  },
+  {
+    id: 'act-5',
+    date: '2026-09-27',
     time: '11:30',
     mode: 'study',
     type: '복습 퀴즈',
@@ -211,7 +406,7 @@ let proactiveLogs: ProactiveLog[] = [
     userResponded: true,
   },
   {
-    id: 'act-4',
+    id: 'act-6',
     date: '2026-09-27',
     time: '10:15',
     mode: 'study',
@@ -221,7 +416,7 @@ let proactiveLogs: ProactiveLog[] = [
     userResponded: false,
   },
   {
-    id: 'act-5',
+    id: 'act-7',
     date: '2026-09-27',
     time: '09:00',
     mode: 'study',
@@ -231,13 +426,75 @@ let proactiveLogs: ProactiveLog[] = [
     userResponded: true,
   },
   {
-    id: 'act-6',
+    id: 'act-8',
     date: '2026-09-27',
     time: '08:15',
+    mode: 'cooking',
+    type: '레시피 순서 안내',
+    reason: '아침 영양 밸런스 권장 알림',
+    utterance: '좋은 아침이에요! 단백질 보충을 위해 그릭요거트와 달걀 프라이를 곁들여보세요.',
+    userResponded: false,
+  },
+
+  // 2. Yesterday (2026-09-26) - 총 6건 (전일 대비 +2건 차이 계산용)
+  {
+    id: 'act-9',
+    date: '2026-09-26',
+    time: '18:40',
+    mode: 'cooking',
+    type: '화력 조절 알림',
+    reason: '조리 완료 후 인덕션 잔열 주의',
+    utterance: '조리가 끝났습니다. 상판이 아직 뜨거우니 주의하시고 전원을 꺼주세요.',
+    userResponded: true,
+  },
+  {
+    id: 'act-10',
+    date: '2026-09-26',
+    time: '16:00',
     mode: 'study',
-    type: '집중력 환기',
-    reason: '기상 직후 루틴 격려',
-    utterance: '상쾌한 아침이에요! 물 한 잔 드시고 하루를 시작해보세요.',
+    type: '휴식 권유',
+    reason: '2시간 연속 업무 인지',
+    utterance: '오후 집중 시간이 길어지고 있어요. 물을 한 잔 마시고 5분간 먼 곳을 바라보세요.',
+    userResponded: true,
+  },
+  {
+    id: 'act-11',
+    date: '2026-09-26',
+    time: '14:00',
+    mode: 'study',
+    type: '학습 타이머',
+    reason: '오후 세션 시작 제안',
+    utterance: '식사 후 졸음이 올 수 있어요. 가벼운 문제 풀이로 20분 세션을 시작할까요?',
+    userResponded: true,
+  },
+  {
+    id: 'act-12',
+    date: '2026-09-26',
+    time: '12:20',
+    mode: 'cooking',
+    type: '타이머 종료 경보',
+    reason: '점심 식사 타이머 종료',
+    utterance: '스파게티 면 조리가 끝났습니다. 맛있게 드세요!',
+    userResponded: true,
+  },
+  {
+    id: 'act-13',
+    date: '2026-09-26',
+    time: '10:30',
+    mode: 'study',
+    type: '복습 퀴즈',
+    reason: '기억 유지 주기 도달',
+    utterance: '오전에 학습한 개념을 한 줄로 요약해볼까요?',
+    userResponded: false,
+  },
+  {
+    id: 'act-14',
+    date: '2026-09-26',
+    time: '09:00',
+    mode: 'study',
+    type: '학습 타이머',
+    reason: '일과 시작 루틴 알림',
+    utterance: '새로운 하루의 학습을 시작할 시간입니다. 파이팅!',
     userResponded: true,
   },
 ];
