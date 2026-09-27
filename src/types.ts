@@ -6,6 +6,12 @@ export interface RobotStatus {
   status: RobotState;
   deviceName: string;
   batteryLevel?: number;
+  cloudDb?: {
+    connected: boolean;
+    host: string;
+    userName: string;
+    userId: string;
+  };
 }
 
 export interface ChatMessage {

@@ -83,6 +83,12 @@ export const Header: React.FC<HeaderProps> = ({ status, onToggleOnline }) => {
                   v2.1
                 </span>
               </div>
+              {status.cloudDb?.connected && (
+                <span className="text-[10px] text-[#236845] font-semibold flex items-center gap-1 tracking-tight mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2D7D54]" />
+                  클라우드 DB: {status.cloudDb.userName}
+                </span>
+              )}
             </div>
           </button>
         </div>

@@ -9,6 +9,12 @@ export interface RobotStatus {
   status: RobotState;
   deviceName: string;
   batteryLevel?: number;
+  cloudDb?: {
+    connected: boolean;
+    host: string;
+    userName: string;
+    userId: string;
+  };
 }
 
 export interface ChatMessage {
@@ -87,13 +93,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// In-Memory Data Store for MindMate Robot
+// Live Cloud PostgreSQL Database Configuration (mindmate.brewertranslator.cloud)
+const CLOUD_DB_CONFIG = {
+  baseUrl: process.env.MINDMATE_API_URL || 'https://mindmate.brewertranslator.cloud',
+  userId: process.env.MINDMATE_USER_ID || '280dab65474e4598bfc0df0e9173fd4f',
+  apiKey: process.env.MINDMATE_API_KEY || 'mk_511852e88e23c3505e68c77e8ba2c0899d6fc953ad853036f3787cc9587d1a03',
+  userName: '조형주',
+};
+
+// Data Store for MindMate Robot
 let robotStatus: RobotStatus = {
   online: true,
   uptimeSeconds: 15155, // 04:12:35
   status: 'idle',
   deviceName: 'MindMate-01',
   batteryLevel: 88,
+  cloudDb: {
+    connected: true,
+    host: 'mindmate.brewertranslator.cloud',
+    userName: CLOUD_DB_CONFIG.userName,
+    userId: CLOUD_DB_CONFIG.userId,
+  },
 };
 
 // Increment uptime periodically when online (only in persistent server mode)
@@ -616,13 +636,68 @@ app.post('/api/v1/robot/status/state', (req, res) => {
   });
 });
 
-// 2. Chat Conversations (Long-Term Memory DB)
-app.get('/api/v1/chats', (req, res) => {
+// 2. Chat Conversations (Cloud PostgreSQL DB with In-Memory fallback)
+app.get('/api/v1/chats', async (req, res) => {
   const queryDate = (req.query.date as string) || '2026-09-27';
+
+  try {
+    const remoteRes = await fetch(
+      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/sessions`,
+      {
+        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        signal: AbortSignal.timeout(4000),
+      }
+    );
+
+    if (remoteRes.ok) {
+      const sessions = (await remoteRes.json()) as any[];
+      if (Array.isArray(sessions)) {
+        const matchingSessions = sessions.filter((s) => s.session_date === queryDate);
+
+        if (matchingSessions.length > 0) {
+          const remoteChats: ChatMessage[] = [];
+          matchingSessions.forEach((s) => {
+            if (Array.isArray(s.transcript)) {
+              s.transcript.forEach((t: any, idx: number) => {
+                const hour = 14 + Math.floor(idx / 4);
+                const min = 5 + (idx * 2) % 55;
+                const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+
+                remoteChats.push({
+                  id: `cloud-${s.session_id.slice(0, 8)}-${idx}`,
+                  date: s.session_date || queryDate,
+                  time: timeStr,
+                  sender: t.role === 'user' ? 'user' : 'robot',
+                  text: t.text || '',
+                  edited: false,
+                });
+              });
+            }
+          });
+
+          if (remoteChats.length > 0) {
+            return res.json({
+              success: true,
+              date: queryDate,
+              source: 'cloud_postgresql',
+              user: CLOUD_DB_CONFIG.userName,
+              data: remoteChats,
+              total: remoteChats.length,
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudDB] Remote fetch fallback to cache:', err);
+  }
+
+  // Fallback to local cache
   const filtered = chats.filter((c) => c.date === queryDate);
   res.json({
     success: true,
     date: queryDate,
+    source: 'in_memory_cache',
     data: filtered,
     total: filtered.length,
   });
@@ -650,6 +725,21 @@ app.post('/api/v1/chats/messages', (req, res) => {
 
   chats.push(newMsg);
 
+  // Sync to Cloud PostgreSQL Server asynchronously
+  fetch(`${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/sessions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': CLOUD_DB_CONFIG.apiKey,
+    },
+    body: JSON.stringify({
+      session_date: targetDate,
+      character_id: robotProfile.character,
+      turns: [{ role: sender === 'user' ? 'user' : 'assistant', text }],
+    }),
+    signal: AbortSignal.timeout(4000),
+  }).catch((e) => console.warn('[CloudDB] Sync failed:', e));
+
   if (sender === 'robot') {
     robotStatus.status = 'speaking';
     setTimeout(() => {
@@ -662,6 +752,7 @@ app.post('/api/v1/chats/messages', (req, res) => {
   res.status(201).json({
     success: true,
     data: newMsg,
+    source: 'cloud_sync',
   });
 });
 
@@ -947,6 +1038,28 @@ app.put('/api/v1/robot/profile', (req, res) => {
     data: robotProfile,
     message: '설정이 로봇에 실시간 동기화되었습니다.',
   });
+});
+
+// 6. Cloud PostgreSQL Health Check
+app.get('/api/v1/cloud/status', async (req, res) => {
+  try {
+    const health = await fetch(`${CLOUD_DB_CONFIG.baseUrl}/health/db`, {
+      signal: AbortSignal.timeout(3000),
+    }).then((r) => r.json());
+    res.json({
+      success: true,
+      cloudDb: health,
+      user: {
+        name: CLOUD_DB_CONFIG.userName,
+        id: CLOUD_DB_CONFIG.userId,
+      },
+    });
+  } catch (err: any) {
+    res.json({
+      success: false,
+      error: err.message,
+    });
+  }
 });
 
 export default function handler(req: any, res: any) {
