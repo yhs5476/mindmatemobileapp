@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import {
   ChatMessage,
   ProactiveLog,
@@ -16,6 +15,19 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Normalization middleware for Vercel Serverless environment
+app.use((req, res, next) => {
+  const matchedPath = req.headers['x-matched-path'] as string;
+  if (matchedPath && matchedPath.startsWith('/api')) {
+    const qIndex = req.url.indexOf('?');
+    const qs = qIndex !== -1 ? req.url.substring(qIndex) : '';
+    req.url = matchedPath + (matchedPath.includes('?') ? '' : qs);
+  } else if (req.url.startsWith('/v1/')) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 // In-Memory Data Store for MindMate Robot
 let robotStatus: RobotStatus = {
   online: true,
@@ -25,12 +37,14 @@ let robotStatus: RobotStatus = {
   batteryLevel: 88,
 };
 
-// Increment uptime periodically when online
-setInterval(() => {
-  if (robotStatus.online) {
-    robotStatus.uptimeSeconds += 1;
-  }
-}, 1000);
+// Increment uptime periodically when online (only in persistent server mode)
+if (!process.env.VERCEL) {
+  setInterval(() => {
+    if (robotStatus.online) {
+      robotStatus.uptimeSeconds += 1;
+    }
+  }, 1000);
+}
 
 // Trained Custom Voice Models (MP3 voice training dataset)
 let trainedVoiceModels: TrainedVoiceModel[] = [
@@ -867,6 +881,14 @@ app.put('/api/v1/robot/profile', (req, res) => {
   });
 });
 
+// Root & Health Check Routes for Vercel
+app.get('/api', (req, res) => {
+  res.json({ success: true, message: 'MindMate API Server is running' });
+});
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // -------------------------------------------------------------
 // Vite Server Integration
 // -------------------------------------------------------------
@@ -874,6 +896,7 @@ async function startServer() {
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true, host: '0.0.0.0' },
       appType: 'spa',
