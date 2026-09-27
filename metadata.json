@@ -1,0 +1,7 @@
+{
+  "name": "MindMate 모바일 웹 콘솔",
+  "description": "음성 전용 AI 로봇 MindMate의 상태 모니터링, 대화 CRUD 관리, 선제 개입 분석, 특화 캐릭터(공부/요리) 및 목소리 설정을 제공하는 미니멀 모바일 웹 콘솔",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
