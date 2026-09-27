@@ -248,56 +248,54 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
         /* Queried Records Section */
         <section className="space-y-3">
           {/* AI Long-term Memory Facts Panel (Mem0 Facts) */}
-          <div className="bg-[#FFFFFF] border border-[#D5E2D9] rounded-2xl p-3.5 space-y-3 shadow-[0_2px_8px_rgba(45,125,84,0.06)]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#EAF5EF] text-[#2D7D54] flex items-center justify-center shrink-0 border border-[#CDE5D7]">
-                  <Brain className="w-4 h-4" />
+          <div className="bg-[#FFFFFF] border border-[#D5E2D9] rounded-2xl p-3.5 space-y-2.5 shadow-[0_2px_8px_rgba(45,125,84,0.06)]">
+            {/* Header: Title + Badge + Action Buttons */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-[#EAF5EF] text-[#2D7D54] flex items-center justify-center shrink-0 border border-[#CDE5D7]">
+                  <Brain className="w-3.5 h-3.5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h4 className="text-xs font-bold text-[#2D2926]">
-                      AI 장기기억 사실 (Mem0 Facts)
-                    </h4>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                        dateFacts.length > 0
-                          ? 'bg-[#EAF5EF] text-[#236845] border-[#CDE5D7]'
-                          : 'bg-[#FEF5E7] text-[#B45309] border-[#FCD9A2]'
-                      }`}
-                    >
-                      {dateFacts.length > 0 ? `${dateFacts.length}건 기억됨` : '기억 미추출'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-[#7A7268]">
-                    대화에서 LLM이 추출한 원자적 사실 및 실시간 pgvector 동기화
-                  </p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h4 className="text-xs font-bold text-[#2D2926] whitespace-nowrap">
+                    AI 장기기억
+                  </h4>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap border shrink-0 ${
+                      dateFacts.length > 0
+                        ? 'bg-[#EAF5EF] text-[#236845] border-[#CDE5D7]'
+                        : 'bg-[#FEF5E7] text-[#B45309] border-[#FCD9A2]'
+                    }`}
+                  >
+                    {dateFacts.length > 0 ? `${dateFacts.length}건 저장` : '미추출'}
+                  </span>
                 </div>
               </div>
 
               {/* Extract Action Buttons */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => onExtractSession()}
                   disabled={isExtracting || messages.length === 0}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                  className={`h-7 px-2.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 shadow-xs ${
                     isExtracting
                       ? 'bg-[#E4DDD2] text-[#8C8479] cursor-not-allowed'
                       : dateFacts.length > 0
                       ? 'bg-[#FAF8F5] hover:bg-[#EAE4D7] text-[#3D3730] border border-[#DDD7CD]'
-                      : 'bg-[#2D7D54] hover:bg-[#256643] text-[#FFFFFF] shadow-sm animate-pulse'
+                      : 'bg-[#2D7D54] hover:bg-[#256643] text-[#FFFFFF] shadow-sm'
                   }`}
                   title="이 대화 세션에서 AI 장기기억 추출"
                 >
                   {isExtracting ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D7D54]" />
-                      <span>추출 중...</span>
+                      <Loader2 className="w-3 h-3 animate-spin text-[#2D7D54]" />
+                      <span className="whitespace-nowrap">추출 중...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{dateFacts.length > 0 ? '기억 재추출' : '기억 추출하기'}</span>
+                      <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+                      <span className="whitespace-nowrap">
+                        {dateFacts.length > 0 ? '재추출' : '기억 추출'}
+                      </span>
                     </>
                   )}
                 </button>
@@ -305,13 +303,18 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                 <button
                   onClick={onExtractAllSessions}
                   disabled={isExtracting}
-                  className="p-1.5 rounded-xl bg-[#FAF8F5] hover:bg-[#EFECE6] border border-[#DDD7CD] text-[#7A7268] hover:text-[#2D2926] transition-colors"
+                  className="h-7 w-7 rounded-lg bg-[#FAF8F5] hover:bg-[#EFECE6] border border-[#DDD7CD] text-[#7A7268] hover:text-[#2D2926] flex items-center justify-center shrink-0 transition-colors"
                   title="전체 날짜 세션 장기기억 일괄 추출 (저비용)"
                 >
                   <Database className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
+
+            {/* Helper Subtitle */}
+            <p className="text-[10px] text-[#7A7268] leading-tight">
+              대화에서 LLM이 추출한 핵심 사실(Mem0) 및 실시간 pgvector 동기화
+            </p>
 
             {/* In-progress Notification */}
             {isExtracting && (
