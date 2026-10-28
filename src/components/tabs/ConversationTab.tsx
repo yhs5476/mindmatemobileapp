@@ -70,6 +70,7 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
   const [editText, setEditText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [senderFilter, setSenderFilter] = useState<'all' | 'user' | 'robot'>('all');
+  const [showArchGuide, setShowArchGuide] = useState(false);
 
   // Confirmation modals
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -93,14 +94,19 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
     return false;
   });
 
-  const quickDates = [
-    { label: '오늘', date: '2026-09-27' },
-    { label: '어제', date: '2026-09-26' },
-    { label: '그저께', date: '2026-09-25' },
-    { label: '9/24', date: '2026-09-24' },
+  const weekDates = [
+    { date: '2026-09-21', dayName: '월', dayNum: '21', hasData: false, isToday: false },
+    { date: '2026-09-22', dayName: '화', dayNum: '22', hasData: false, isToday: false },
+    { date: '2026-09-23', dayName: '수', dayNum: '23', hasData: false, isToday: false },
+    { date: '2026-09-24', dayName: '목', dayNum: '24', hasData: true, isToday: false },
+    { date: '2026-09-25', dayName: '금', dayNum: '25', hasData: true, isToday: false },
+    { date: '2026-09-26', dayName: '토', dayNum: '26', hasData: true, isToday: false },
+    { date: '2026-09-27', dayName: '일', dayNum: '27', hasData: true, isToday: true },
+    { date: '2026-09-28', dayName: '월', dayNum: '28', hasData: false, isToday: false },
   ];
 
   const handleQuery = (dateToQuery: string) => {
+    setInputDate(dateToQuery);
     onSelectDate(dateToQuery);
     onPerformQuery(dateToQuery);
   };
@@ -144,86 +150,172 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)] pb-24 max-w-md mx-auto px-4 py-4 space-y-4">
-      {/* 1. Long-term Memory Architecture Explanation Banner */}
-      <section className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-4 shadow-[0_2px_8px_rgba(180,170,155,0.06)] relative overflow-hidden">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-[#EAF5EF] text-[#236845] border border-[#CDE5D7] shrink-0">
-            <Brain className="w-5 h-5" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold text-[#2D2926] flex items-center gap-1.5">
-                <Database className="w-3.5 h-3.5 text-[#2D7D54]" />
-                <span>로봇 장기 기억(Memory DB) 관리</span>
-              </h2>
-              <span className="text-[10px] font-mono text-[#236845] bg-[#EAF5EF] px-1.5 py-0.5 rounded border border-[#CDE5D7]">
-                LLM Context
-              </span>
+      {/* 1. Daily Memory Highlight Bento Card (Step 2 Trendy Redesign) */}
+      <section className="bg-gradient-to-r from-[#FFFFFF] via-[#FAF8F5] to-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-3.5 shadow-[0_2px_12px_rgba(45,125,84,0.04)] relative overflow-hidden transition-all">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#EAF5EF] to-[#D5EADF] text-[#2D7D54] flex items-center justify-center shrink-0 border border-[#CDE5D7] shadow-xs">
+              <Brain className="w-4 h-4" />
             </div>
-            <p className="text-[11px] text-[#6B645C] leading-relaxed">
-              이곳의 대화 데이터는 단순 채팅 기록이 아니라 <span className="text-[#236845] font-semibold">LLM의 차기 답변 및 행동 방식에 직접 주입되는 장기 기억</span>입니다. 날짜별 조회를 통해 잘못 인식된 STT 오탈자나 왜곡된 기억을 수정·삭제하여 로봇의 반응을 교정하세요.
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-xs font-bold text-[#2D2926] truncate">
+                  {selectedDate === '2026-09-27'
+                    ? '오늘의 AI 기억 하이라이트'
+                    : `${selectedDate.slice(5).replace('-', '월 ')}일 기억 하이라이트`}
+                </h2>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EAF5EF] text-[#236845] border border-[#CDE5D7] shrink-0 whitespace-nowrap">
+                  {dateFacts.length > 0 ? `${dateFacts.length}건 기억됨` : '새로운 기억 수집 중'}
+                </span>
+              </div>
+              <p className="text-[11px] text-[#7A7268] mt-0.5 truncate">
+                {dateFacts.length > 0
+                  ? `로봇이 대화에서 학습한 핵심 기억이 LLM 프롬프트에 자동 주입됩니다.`
+                  : `대화를 나누면 로봇이 중요한 학습 습관과 취향을 자동으로 기억합니다.`}
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* 2. Date Query Panel (날짜 조회 전용 인터페이스) */}
-      <section className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-4 space-y-3 shadow-[0_2px_8px_rgba(180,170,155,0.06)]">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-[#38332E] flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[#2D7D54]" />
-            <span>조회할 날짜 선택</span>
-          </label>
-          {hasQueried && (
-            <span className="text-[10px] text-[#7A7268] font-mono">
-              현재 조회 일자: <strong className="text-[#236845]">{selectedDate}</strong>
-            </span>
-          )}
-        </div>
-
-        {/* Date Input & Query Button */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              type="date"
-              value={inputDate}
-              onChange={(e) => setInputDate(e.target.value)}
-              className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-xl px-3 py-2 text-xs font-mono text-[#2D2926] focus:outline-none transition-colors"
-            />
-          </div>
+          {/* Toggle Architectural Guide */}
           <button
-            onClick={() => handleQuery(inputDate)}
-            className="px-4 py-2 rounded-xl bg-[#2D7D54] hover:bg-[#256643] active:scale-95 text-[#FFFFFF] font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0"
+            onClick={() => setShowArchGuide(!showArchGuide)}
+            className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+              showArchGuide
+                ? 'bg-[#EAF5EF] border-[#2D7D54] text-[#236845]'
+                : 'bg-[#FAF8F5] hover:bg-[#EFECE6] border-[#DDD7CD] text-[#7A7268]'
+            }`}
+            title="장기기억 원리 안내 보기"
           >
-            <Search className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>대화 기록 조회</span>
+            <Info className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Quick Date Presets */}
-        <div className="flex items-center gap-1.5 pt-1">
-          <span className="text-[10px] text-[#827A70] shrink-0">빠른 조회:</span>
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {quickDates.map((item) => {
-              const isActive = selectedDate === item.date && hasQueried;
-              return (
-                <button
-                  key={item.date}
-                  onClick={() => {
-                    setInputDate(item.date);
-                    handleQuery(item.date);
-                  }}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all shrink-0 whitespace-nowrap ${
-                    isActive
-                      ? 'bg-[#EAF5EF] border-[#2D7D54] text-[#236845] font-bold'
-                      : 'bg-[#FAF8F5] border-[#E4DDD2] text-[#6E675E] hover:bg-[#EDE7DC] hover:text-[#2D2926]'
+        {/* Collapsible Architecture Guide */}
+        {showArchGuide && (
+          <div className="mt-3 pt-2.5 border-t border-[#EAE4D9] text-[11px] text-[#6B645C] leading-relaxed animate-in fade-in slide-in-from-top-1 space-y-1 bg-[#FAF8F5] p-2.5 rounded-xl border border-[#E0D9CD]">
+            <div className="font-semibold text-[#236845] flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-[#2D7D54]" />
+              <span>MindMate 장기 기억(Memory DB) 작동 원리</span>
+            </div>
+            <p>
+              이곳의 대화 데이터는 단순 로그가 아니라 <strong>LLM의 행동 방식에 직접 주입되는 장기 기억</strong>입니다.
+              STT 오탈자나 왜곡된 기억을 수정·삭제하여 로봇의 반응을 교정할 수 있습니다.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* 2. Horizontal Date Strip & Instant Selector (Step 1 Trendy Redesign) */}
+      <section className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-3.5 space-y-3 shadow-[0_2px_12px_rgba(45,125,84,0.04)]">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[#EAF5EF] text-[#2D7D54] flex items-center justify-center shrink-0 border border-[#CDE5D7]">
+              <Calendar className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-bold text-[#2D2926] whitespace-nowrap truncate">
+                {selectedDate === '2026-09-27'
+                  ? '오늘의 대화'
+                  : `${Number(selectedDate.slice(5, 7))}월 ${Number(selectedDate.slice(8, 10))}일 대화`}
+              </span>
+              {selectedDate === '2026-09-27' ? (
+                <span className="text-[10px] bg-[#EAF5EF] text-[#236845] font-semibold px-1.5 py-0.5 rounded-full border border-[#CDE5D7] whitespace-nowrap shrink-0">
+                  Today
+                </span>
+              ) : (
+                <span className="text-[10px] text-[#8C8479] font-mono whitespace-nowrap shrink-0">
+                  ({selectedDate.slice(5)})
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Actions: Return to Today & Date Picker */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {selectedDate !== '2026-09-27' && (
+              <button
+                onClick={() => handleQuery('2026-09-27')}
+                className="h-7 px-2.5 text-[11px] font-semibold rounded-lg bg-[#EAF5EF] hover:bg-[#DDF0E4] border border-[#BCE2CD] text-[#236845] flex items-center gap-1 whitespace-nowrap shrink-0 transition-all active:scale-95 shadow-2xs"
+                title="오늘 날짜로 즉시 이동"
+              >
+                <RotateCcw className="w-3 h-3 shrink-0" />
+                <span className="whitespace-nowrap">오늘</span>
+              </button>
+            )}
+
+            {/* Custom Date Input Overlay */}
+            <div className="relative shrink-0">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  if (e.target.value) handleQuery(e.target.value);
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                title="다른 날짜 달력에서 직접 선택"
+              />
+              <button
+                type="button"
+                className="h-7 px-2.5 rounded-lg bg-[#FAF8F5] hover:bg-[#F2EFE8] border border-[#DDD7CD] hover:border-[#2D7D54] text-[#6E675E] text-[11px] font-medium flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
+                title="다른 날짜 캘린더 열기"
+              >
+                <Calendar className="w-3 h-3 text-[#2D7D54] shrink-0" />
+                <span className="whitespace-nowrap">달력</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Horizontal Weekday Date Strip */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-0.5 px-0.5">
+          {weekDates.map((item) => {
+            const isSelected = selectedDate === item.date;
+            const hasMemoryDot =
+              item.hasData ||
+              facts.some(
+                (f) => f.event_time === item.date || f.created_at?.startsWith(item.date)
+              );
+
+            return (
+              <button
+                key={item.date}
+                onClick={() => handleQuery(item.date)}
+                className={`flex flex-col items-center justify-center flex-1 min-w-[42px] h-[58px] rounded-xl transition-all duration-150 select-none shrink-0 relative ${
+                  isSelected
+                    ? 'bg-[#2D7D54] text-[#FFFFFF] shadow-md shadow-[#2D7D54]/25 ring-2 ring-[#2D7D54]/20 scale-[1.03]'
+                    : 'bg-[#FAF8F5] border border-[#E8E2D8] text-[#7A7268] hover:bg-[#F2EFE8] hover:border-[#DDD7CD]'
+                }`}
+              >
+                <span
+                  className={`text-[10px] font-medium tracking-tight ${
+                    isSelected ? 'text-[#D5F0E1]' : 'text-[#8C8479]'
                   }`}
                 >
-                  {item.label} ({item.date.slice(5)})
-                </button>
-              );
-            })}
-          </div>
+                  {item.dayName}
+                </span>
+                <span
+                  className={`text-sm font-bold font-mono tracking-tight my-0.5 ${
+                    isSelected ? 'text-[#FFFFFF]' : 'text-[#2D2926]'
+                  }`}
+                >
+                  {item.dayNum}
+                </span>
+
+                {/* Dot Indicator for Stored Memories */}
+                <span className="h-1.5 flex items-center justify-center">
+                  {hasMemoryDot ? (
+                    <span
+                      className={`w-1 h-1 rounded-full ${
+                        isSelected ? 'bg-[#FFFFFF]' : 'bg-[#2D7D54]'
+                      }`}
+                    />
+                  ) : (
+                    <span className="w-1 h-1 rounded-full opacity-0" />
+                  )}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -384,26 +476,30 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="bg-[#FAF8F5] border border-dashed border-[#DDD7CD] rounded-xl p-3 text-center space-y-1">
-                <p className="text-xs font-semibold text-[#38332E]">
-                  이 대화에서 아직 추출된 장기기억 사실이 없습니다.
-                </p>
-                <p className="text-[11px] text-[#7A7268]">
-                  상단의 <strong className="text-[#236845]">[기억 추출하기]</strong> 버튼을 누르면
-                  AI가 대화를 분석하여 중요한 학습 진도, 취향, 일정을 장기기억 DB에 저장합니다.
-                </p>
+              <div className="bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl px-3 py-2 flex items-center justify-between text-xs text-[#7A7268]">
+                <span className="flex items-center gap-1.5 text-[11px]">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span>아직 추출된 기억이 없습니다.</span>
+                </span>
+                <button
+                  onClick={() => onExtractSession()}
+                  disabled={isExtracting || messages.length === 0}
+                  className="text-[11px] font-bold text-[#236845] hover:underline whitespace-nowrap"
+                >
+                  기억 추출하기 →
+                </button>
               </div>
             )}
           </div>
 
           {/* Controls Bar: Count, Filter, Search, New Record, Delete All */}
-          <div className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-3 space-y-2.5 shadow-[0_2px_6px_rgba(180,170,155,0.05)]">
+          <div className="bg-[#FFFFFF] border border-[#E8E2D8] rounded-2xl p-3 space-y-2.5 shadow-[0_2px_10px_rgba(45,125,84,0.03)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#2D2926]">
-                  {selectedDate} 기록 목록
+                  {selectedDate.slice(5)} 대화 기록
                 </span>
-                <span className="text-[10px] font-mono text-[#236845] bg-[#EAF5EF] border border-[#CDE5D7] px-2 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] font-mono text-[#236845] bg-[#EAF5EF] border border-[#CDE5D7] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0">
                   총 {messages.length}건
                 </span>
               </div>
@@ -412,17 +508,17 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] hover:bg-[#EFECE6] border border-[#DDD7CD] text-[11px] font-semibold text-[#236845] flex items-center gap-1 transition-colors"
+                  className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] hover:bg-[#EFECE6] border border-[#DDD7CD] text-[11px] font-semibold text-[#236845] flex items-center gap-1 transition-colors shadow-2xs whitespace-nowrap shrink-0"
                   title="기억 데이터 수동 추가"
                 >
                   <Plus className="w-3 h-3 text-[#2D7D54]" />
-                  <span>수동 추가</span>
+                  <span>발화 추가</span>
                 </button>
 
                 {messages.length > 0 && (
                   <button
                     onClick={() => setConfirmDeleteAll(true)}
-                    className="p-1 rounded-lg bg-[#FAF8F5] hover:bg-[#FEE2E2] border border-[#DDD7CD] hover:border-[#FCA5A5] text-[#8C8479] hover:text-[#DC2626] transition-colors"
+                    className="p-1 rounded-lg bg-[#FAF8F5] hover:bg-[#FEE2E2] border border-[#DDD7CD] hover:border-[#FCA5A5] text-[#8C8479] hover:text-[#DC2626] transition-colors shrink-0"
                     title="이 날짜 기록 전체 삭제"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -434,12 +530,12 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
             {/* Filter and Search Bar */}
             <div className="flex items-center gap-2 pt-1 border-t border-[#E8E2D8]">
               {/* Sender Filter */}
-              <div className="flex items-center gap-1 bg-[#FAF8F5] border border-[#DDD7CD] rounded-lg p-0.5">
+              <div className="flex items-center gap-0.5 bg-[#FAF8F5] border border-[#DDD7CD] rounded-lg p-0.5 shrink-0">
                 <button
                   onClick={() => setSenderFilter('all')}
-                  className={`px-2 py-1 rounded text-[10px] transition-colors ${
+                  className={`px-2 py-1 rounded-md text-[10px] transition-colors whitespace-nowrap ${
                     senderFilter === 'all'
-                      ? 'bg-[#FFFFFF] text-[#2D2926] font-bold shadow-xs'
+                      ? 'bg-[#FFFFFF] text-[#2D2926] font-bold shadow-2xs'
                       : 'text-[#7A7268] hover:text-[#2D2926]'
                   }`}
                 >
@@ -447,23 +543,23 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                 </button>
                 <button
                   onClick={() => setSenderFilter('user')}
-                  className={`px-2 py-1 rounded text-[10px] transition-colors ${
+                  className={`px-2 py-1 rounded-md text-[10px] transition-colors whitespace-nowrap ${
                     senderFilter === 'user'
-                      ? 'bg-[#EAF5EF] text-[#236845] font-bold shadow-xs'
+                      ? 'bg-[#EAF5EF] text-[#236845] font-bold shadow-2xs'
                       : 'text-[#7A7268] hover:text-[#2D2926]'
                   }`}
                 >
-                  사용자 STT
+                  나 (STT)
                 </button>
                 <button
                   onClick={() => setSenderFilter('robot')}
-                  className={`px-2 py-1 rounded text-[10px] transition-colors ${
+                  className={`px-2 py-1 rounded-md text-[10px] transition-colors whitespace-nowrap ${
                     senderFilter === 'robot'
-                      ? 'bg-[#EEF4FB] text-[#2563EB] font-bold shadow-xs'
+                      ? 'bg-[#EEF4FB] text-[#2563EB] font-bold shadow-2xs'
                       : 'text-[#7A7268] hover:text-[#2D2926]'
                   }`}
                 >
-                  로봇 LLM
+                  MindMate
                 </button>
               </div>
 
@@ -474,7 +570,7 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                   placeholder="대화 내용 검색..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-lg pl-6 pr-2 py-1 text-[11px] text-[#2D2926] placeholder-[#A0988E] focus:outline-none"
+                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-lg pl-6 pr-2 py-1 text-[11px] text-[#2D2926] placeholder-[#A0988E] focus:outline-none transition-colors"
                 />
                 <Search className="w-3 h-3 text-[#8C8479] absolute left-2 top-2 pointer-events-none" />
                 {searchTerm && (
@@ -496,14 +592,14 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
               <p className="text-xs font-semibold text-[#38332E]">
                 {searchTerm || senderFilter !== 'all'
                   ? '검색 조건에 일치하는 대화 데이터가 없습니다.'
-                  : `${selectedDate} 일자에 저장된 장기 기억 대화가 없습니다.`}
+                  : `${selectedDate} 일자에 저장된 대화가 없습니다.`}
               </p>
               <p className="text-[11px] text-[#7A7268]">
-                [수동 추가] 버튼을 눌러 기억 데이터를 직접 주입할 수 있습니다.
+                [발화 추가] 버튼을 눌러 기억 데이터를 직접 주입할 수 있습니다.
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {filteredMessages.map((msg, index) => {
                 const isUser = msg.sender === 'user';
                 const isEditing = editingId === msg.id;
@@ -511,46 +607,60 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                 return (
                   <div
                     key={msg.id}
-                    className={`bg-[#FFFFFF] border rounded-2xl p-4 transition-all space-y-3 shadow-[0_2px_6px_rgba(180,170,155,0.06)] ${
+                    className={`rounded-2xl p-3.5 transition-all space-y-2 shadow-[0_2px_10px_rgba(45,125,84,0.03)] ${
                       isEditing
-                        ? 'border-[#2D7D54] ring-2 ring-[#2D7D54]/25'
+                        ? 'bg-[#FFFFFF] border-2 border-[#2D7D54] ring-2 ring-[#2D7D54]/20'
                         : isUser
-                        ? 'border-[#E8E2D8] hover:border-[#D6CEC1]'
-                        : 'border-[#E4DED3] hover:border-[#BFD3EA]'
+                        ? 'bg-[#FFFFFF] border border-[#E8E2D8] hover:border-[#D6CEC1]'
+                        : 'bg-gradient-to-br from-[#FFFFFF] via-[#F8FAF9] to-[#F1F7F4] border border-[#D5EADF] hover:border-[#BCE2CD]'
                     }`}
                   >
                     {/* Record Header */}
-                    <div className="flex items-center justify-between border-b border-[#EFEAE0] pb-2.5">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-[#EFEAE0]/80">
+                      <div className="flex items-center gap-1.5">
                         {/* Sender Label Badge */}
                         {isUser ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-[#EAF5EF] text-[#236845] border border-[#CDE5D7]">
-                            <User className="w-3 h-3 text-[#2D7D54]" />
-                            사용자 (STT 음성 인식)
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#EAF5EF] text-[#236845] border border-[#CDE5D7] whitespace-nowrap shrink-0">
+                            <User className="w-3 h-3 text-[#2D7D54] shrink-0" />
+                            나 (STT)
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-[#EEF4FB] text-[#2563EB] border border-[#BCD9FA]">
-                            <Bot className="w-3 h-3 text-[#2563EB]" />
-                            MindMate (LLM 생성 응답)
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#EEF4FB] text-[#2563EB] border border-[#BCD9FA] whitespace-nowrap shrink-0">
+                            <Bot className="w-3 h-3 text-[#2563EB] shrink-0" />
+                            MindMate
                           </span>
                         )}
 
-                        <span className="text-[10px] font-mono text-[#8C8479] flex items-center gap-0.5">
-                          <Clock className="w-2.5 h-2.5" />
+                        <span className="text-[10px] font-mono text-[#8C8479] flex items-center gap-0.5 whitespace-nowrap shrink-0">
+                          <Clock className="w-2.5 h-2.5 shrink-0" />
                           {msg.time}
                         </span>
 
                         {msg.edited && (
-                          <span className="text-[10px] font-medium text-[#B45309] bg-[#FEF5E7] px-1.5 py-0.2 rounded border border-[#FCD9A2]">
-                            수정 반영됨
+                          <span className="text-[10px] font-medium text-[#B45309] bg-[#FEF5E7] px-1.5 py-0.2 rounded border border-[#FCD9A2] whitespace-nowrap shrink-0">
+                            수정됨
                           </span>
                         )}
                       </div>
 
-                      {/* Memory Status Tag */}
-                      <span className="text-[10px] text-[#A8A196] font-mono hidden sm:inline">
-                        #{index + 1}
-                      </span>
+                      {/* Header Micro Action Buttons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleStartEdit(msg)}
+                          className="h-6 px-2 rounded-md bg-[#FAF8F5] hover:bg-[#ECE6DA] border border-[#DDD7CD] text-[#6E675E] hover:text-[#2D2926] flex items-center gap-1 text-[10px] font-medium transition-colors shadow-2xs"
+                          title="발화 수정"
+                        >
+                          <Edit3 className="w-2.5 h-2.5 text-[#7A7268]" />
+                          <span>수정</span>
+                        </button>
+                        <button
+                          onClick={() => setDeleteTargetId(msg.id)}
+                          className="h-6 w-6 rounded-md bg-[#FAF8F5] hover:bg-[#FEE2E2] border border-[#DDD7CD] hover:border-[#FCA5A5] text-[#8C8479] hover:text-[#DC2626] flex items-center justify-center transition-colors shadow-2xs"
+                          title="기록 삭제"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Record Content & Inline Editor */}
@@ -576,7 +686,7 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                         <div className="flex items-center justify-between text-[11px] text-[#7A7268] pt-1">
                           <span className="flex items-center gap-1 text-[#236845] text-[10px]">
                             <Info className="w-3 h-3 shrink-0" />
-                            저장 시 LLM의 프롬프트 컨텍스트에 즉시 반영됩니다.
+                            저장 시 LLM 프롬프트에 즉시 반영됩니다.
                           </span>
                           <div className="flex items-center gap-2">
                             <button
@@ -597,37 +707,8 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {/* Text Block */}
-                        <div className="bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl p-3.5 text-xs text-[#2D2926] leading-relaxed font-sans whitespace-pre-wrap break-words select-text">
-                          {msg.text}
-                        </div>
-
-                        {/* Action Toolbar */}
-                        <div className="flex items-center justify-between text-[11px] pt-1">
-                          <span className="text-[10px] text-[#8C8479]">
-                            {isUser
-                              ? '사용자 의도 및 키워드로 저장됨'
-                              : '로봇 성향 및 페르소나 출력 기준'}
-                          </span>
-
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleStartEdit(msg)}
-                              className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] hover:bg-[#ECE6DA] border border-[#DDD7CD] text-[#524B43] hover:text-[#2D2926] flex items-center gap-1 text-[11px] transition-colors"
-                            >
-                              <Edit3 className="w-3 h-3 text-[#7A7268]" />
-                              <span>수정하기</span>
-                            </button>
-                            <button
-                              onClick={() => setDeleteTargetId(msg.id)}
-                              className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] hover:bg-[#FEE2E2] border border-[#DDD7CD] hover:border-[#FCA5A5] text-[#8C8479] hover:text-[#DC2626] flex items-center gap-1 text-[11px] transition-colors"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>삭제</span>
-                            </button>
-                          </div>
-                        </div>
+                      <div className="text-[13px] text-[#2D2926] leading-relaxed font-sans whitespace-pre-wrap break-words select-text">
+                        {msg.text}
                       </div>
                     )}
                   </div>

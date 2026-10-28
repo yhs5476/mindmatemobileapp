@@ -25,9 +25,9 @@ export const App: React.FC = () => {
     deviceName: 'MindMate-01',
   });
 
-  // Date & Chats State: User must query to see
+  // Date & Chats State: Auto-query enabled
   const [selectedDate, setSelectedDate] = useState<string>('2026-09-27');
-  const [hasQueried, setHasQueried] = useState<boolean>(false);
+  const [hasQueried, setHasQueried] = useState<boolean>(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatsLoading, setIsChatsLoading] = useState<boolean>(false);
 
@@ -152,12 +152,16 @@ export const App: React.FC = () => {
     fetchProactive();
     fetchFacts();
 
+    // Step 1: Zero-Step Discovery - Automatically load today's chats on initial launch
+    fetchChats(selectedDate);
+    setHasQueried(true);
+
     const interval = setInterval(() => {
       fetchStatus();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [fetchStatus, fetchProfile, fetchProactive, fetchFacts]);
+  }, [fetchStatus, fetchProfile, fetchProactive, fetchFacts, fetchChats, selectedDate]);
 
   // Handle Online/Offline toggle
   const handleToggleOnline = async () => {
@@ -356,8 +360,8 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Global Sticky Top Header */}
-      <Header status={status} onToggleOnline={handleToggleOnline} />
+      {/* Global Sticky Top Header 2.0 */}
+      <Header status={status} onToggleOnline={handleToggleOnline} character={profile.character} />
 
       {/* Main Tab Content */}
       <main className="flex-1 w-full max-w-md mx-auto">

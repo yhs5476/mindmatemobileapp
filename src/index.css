@@ -27,6 +27,15 @@
   background: rgba(150, 138, 120, 0.65);
 }
 
+/* Utility to hide scrollbars while retaining scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.65; transform: scale(0.96); }

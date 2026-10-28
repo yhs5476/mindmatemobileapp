@@ -8,15 +8,16 @@ import {
   FileAudio,
   Play,
   Square,
-  CheckCircle,
   Check,
   Sparkles,
   Trash2,
-  Mic,
-  ChevronDown,
-  ChevronUp,
   Plus,
   RefreshCw,
+  AudioLines,
+  Volume2,
+  ChevronUp,
+  Sliders,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface SettingsTabProps {
@@ -35,7 +36,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   // Trained Voice Models State
   const [trainedModels, setTrainedModels] = useState<TrainedVoiceModel[]>([]);
   const [activeModelId, setActiveModelId] = useState<string>(profile.activeVoiceModelId || '');
-  const [isModelsLoading, setIsModelsLoading] = useState(false);
+  const [, setIsModelsLoading] = useState(false);
 
   // Expandable inline training form state
   const [showTrainingForm, setShowTrainingForm] = useState<boolean>(false);
@@ -49,7 +50,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   // Training Process State
   const [isTraining, setIsTraining] = useState(false);
-  const [trainingStep, setTrainingStep] = useState<number>(0); // 0 to 4
+  const [trainingStep, setTrainingStep] = useState<number>(0);
   const [trainingProgress, setTrainingProgress] = useState<number>(0);
 
   // Audio Playback Preview State
@@ -61,12 +62,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Preset sample audio files that users can pick instantly
+  // Preset sample audio files
   const demoAudioPresets = [
-    { name: '사용자_차분한_발화_샘플.mp3', size: 2.3, duration: 41, tone: 'calm' as const, character: 'study' as const },
-    { name: '밝고_또렷한_음성_샘플.mp3', size: 1.9, duration: 34, tone: 'energetic' as const, character: 'cooking' as const },
-    { name: '다정한_낭독_녹음.mp3', size: 2.7, duration: 48, tone: 'warm' as const, character: 'study' as const },
-    { name: '셰프_마르코_목소리_녹음.mp3', size: 2.0, duration: 32, tone: 'energetic' as const, character: 'cooking' as const },
+    { name: '사용자_차분한_발화_샘플.mp3', label: '차분한 톤', size: 2.3, duration: 41, tone: 'calm' as const, character: 'study' as const },
+    { name: '밝고_또렷한_음성_샘플.mp3', label: '밝고 또렷한 톤', size: 1.9, duration: 34, tone: 'energetic' as const, character: 'cooking' as const },
+    { name: '다정한_낭독_녹음.mp3', label: '다정한 낭독', size: 2.7, duration: 48, tone: 'warm' as const, character: 'study' as const },
+    { name: '셰프_마르코_목소리_녹음.mp3', label: '열정적인 셰프', size: 2.0, duration: 32, tone: 'energetic' as const, character: 'cooking' as const },
   ];
 
   // Fetch trained voice models from backend
@@ -104,7 +105,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   // Handle character mode switch
   const handleSelectCharacter = (mode: CharacterMode) => {
     setCharacter(mode);
-    setShowTrainingForm(false); // reset inline training box when switching characters
+    setShowTrainingForm(false);
 
     // Auto-select a voice model matching the newly selected character mode
     const currentModel = trainedModels.find((m) => m.id === activeModelId);
@@ -123,7 +124,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       setSelectedFileName(file.name);
       setFileSizeMb(Number((file.size / (1024 * 1024)).toFixed(1)) || 2.1);
       setFileDurationSec(35 + Math.floor(Math.random() * 20));
-      setCustomVoiceName(file.name.replace(/\.[^/.]+$/, '') + ' 모델');
+      setCustomVoiceName(file.name.replace(/\.[^/.]+$/, ''));
     }
   };
 
@@ -169,7 +170,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             setActiveModelId(json.data.id);
           }
           setShowTrainingForm(false);
-          setSaveSuccessMsg(`🎉 [${character === 'study' ? '공부 메이트' : '요리 메이트'}] 새 음성 학습이 완료되어 자동 적용되었습니다!`);
+          setSaveSuccessMsg(`새 목소리가 성공적으로 학습되어 ${character === 'study' ? '학습 메이트' : '요리 메이트'}에 적용되었습니다.`);
           setTimeout(() => setSaveSuccessMsg(null), 4000);
         }
       } catch (err) {
@@ -234,125 +235,224 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       speed: 1.0,
       pitch: 1.0,
     });
-    setSaveSuccessMsg('로봇에 캐릭터 모드 및 선택된 음성 설정이 실시간 동기화되었습니다.');
+    setSaveSuccessMsg('캐릭터 모드와 보이스 설정이 로봇에 실시간 동기화되었습니다.');
     setTimeout(() => setSaveSuccessMsg(null), 3500);
   };
 
-  // Filter models for each character
-  const studyModels = trainedModels.filter((m) => m.characterTarget === 'study');
-  const cookingModels = trainedModels.filter((m) => m.characterTarget === 'cooking');
+  // Active models for selected character
+  const activeModels = trainedModels.filter((m) => m.characterTarget === character);
 
-  // Render Voice List for a specific character
-  const renderVoiceListForCharacter = (targetMode: CharacterMode, models: TrainedVoiceModel[]) => {
-    const isStudy = targetMode === 'study';
+  return (
+    <div className="flex flex-col min-h-[calc(100vh-8rem)] pb-28 max-w-md mx-auto px-4 py-4 space-y-6">
+      {/* Toast Feedback */}
+      {saveSuccessMsg && (
+        <div className="bg-[#1E3A2B] text-white rounded-2xl p-3.5 flex items-center gap-3 shadow-lg animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-5 h-5 text-[#4ADE80] shrink-0" />
+          <span className="text-xs font-medium leading-relaxed">{saveSuccessMsg}</span>
+        </div>
+      )}
 
-    return (
-      <div className="mt-3 pt-3 border-t border-[#EAE4D9] space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#2D2926] flex items-center gap-1.5">
-            <Mic className={`w-3.5 h-3.5 ${isStudy ? 'text-[#3B82F6]' : 'text-[#EA580C]'}`} />
-            <span>{isStudy ? '공부 메이트' : '요리 메이트'} 적용 음성 선택</span>
-          </span>
-          <span className="text-[10px] text-[#7A7268] font-mono">
-            {models.length}개 보이스
+      {/* SECTION 1: Character Hero Switcher (2-Column Grid) */}
+      <section className="space-y-2.5">
+        <div className="flex items-center justify-between px-0.5">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#8A8276]">캐릭터 페르소나</h2>
+            <p className="text-[11px] text-[#A39B90] mt-0.5">MindMate의 대화 성향과 지식 맥락을 전환합니다</p>
+          </div>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#EFECE6] text-[#5C554E]">
+            {character === 'study' ? '학습 활성' : '요리 활성'}
           </span>
         </div>
 
-        {models.length === 0 ? (
-          <div className="bg-[#FAF8F5] border border-[#E8E2D8] rounded-xl p-3 text-center text-xs text-[#7A7268]">
-            등록된 목소리가 없습니다. 아래에서 새 MP3 음성을 학습시켜보세요.
+        {/* 2-Column Hero Selector */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Study Mate */}
+          <button
+            type="button"
+            onClick={() => handleSelectCharacter('study')}
+            className={`relative rounded-2xl p-3.5 text-left transition-all flex flex-col justify-between ${
+              character === 'study'
+                ? 'bg-gradient-to-b from-[#F0F6FF] to-[#E5EFFF] border-2 border-[#3B82F6] shadow-sm'
+                : 'bg-white border border-[#E8E2D8] hover:border-[#D5CFC3] opacity-85 hover:opacity-100'
+            }`}
+          >
+            <div className="flex items-start justify-between w-full mb-3">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform ${
+                  character === 'study'
+                    ? 'bg-[#3B82F6] text-white shadow-xs'
+                    : 'bg-[#F4F1EB] text-[#7A7268]'
+                }`}
+              >
+                <BookOpen className="w-5 h-5" />
+              </div>
+              {character === 'study' ? (
+                <span className="w-5 h-5 rounded-full bg-[#3B82F6] text-white flex items-center justify-center">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </span>
+              ) : (
+                <span className="w-5 h-5 rounded-full border border-[#DCD5C9] bg-[#FAF8F5]" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-bold text-sm text-[#1E1B18]">공부 메이트</h3>
+              </div>
+              <p className="text-[11px] text-[#6E675E] mt-1 line-clamp-2 leading-snug">
+                차분하고 논리적인 톤, 집중을 돕는 피드백
+              </p>
+            </div>
+          </button>
+
+          {/* Cooking Mate */}
+          <button
+            type="button"
+            onClick={() => handleSelectCharacter('cooking')}
+            className={`relative rounded-2xl p-3.5 text-left transition-all flex flex-col justify-between ${
+              character === 'cooking'
+                ? 'bg-gradient-to-b from-[#FFF7F0] to-[#FFEFE4] border-2 border-[#EA580C] shadow-sm'
+                : 'bg-white border border-[#E8E2D8] hover:border-[#D5CFC3] opacity-85 hover:opacity-100'
+            }`}
+          >
+            <div className="flex items-start justify-between w-full mb-3">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform ${
+                  character === 'cooking'
+                    ? 'bg-[#EA580C] text-white shadow-xs'
+                    : 'bg-[#F4F1EB] text-[#7A7268]'
+                }`}
+              >
+                <Utensils className="w-5 h-5" />
+              </div>
+              {character === 'cooking' ? (
+                <span className="w-5 h-5 rounded-full bg-[#EA580C] text-white flex items-center justify-center">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </span>
+              ) : (
+                <span className="w-5 h-5 rounded-full border border-[#DCD5C9] bg-[#FAF8F5]" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-bold text-sm text-[#1E1B18]">요리 메이트</h3>
+              </div>
+              <p className="text-[11px] text-[#6E675E] mt-1 line-clamp-2 leading-snug">
+                활기차고 명확한 톤, 조리 순서와 실시간 타이머
+              </p>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* SECTION 2: Voice Persona Studio (Audio List) */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between px-0.5">
+          <div className="flex items-center gap-1.5">
+            <AudioLines className={`w-4 h-4 ${character === 'study' ? 'text-[#3B82F6]' : 'text-[#EA580C]'}`} />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#8A8276]">
+              {character === 'study' ? '학습 메이트' : '요리 메이트'} 보이스
+            </h2>
+          </div>
+          <span className="text-[11px] font-medium text-[#8A8276]">
+            {activeModels.length}개 보이스
+          </span>
+        </div>
+
+        {/* Voice List Items */}
+        {activeModels.length === 0 ? (
+          <div className="bg-white border border-[#E8E2D8] rounded-2xl p-6 text-center text-xs text-[#7A7268] space-y-1">
+            <Volume2 className="w-6 h-6 text-[#A39B90] mx-auto mb-2 opacity-60" />
+            <p className="font-medium text-[#2D2926]">등록된 목소리가 없습니다</p>
+            <p className="text-[11px]">아래 버튼을 눌러 새 MP3 음성을 학습시켜보세요</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {models.map((model) => {
+          <div className="space-y-2.5">
+            {activeModels.map((model) => {
               const isSelected = activeModelId === model.id;
               const isPlaying = playingModelId === model.id;
 
               return (
                 <div
                   key={model.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveModelId(model.id);
-                  }}
-                  className={`rounded-xl p-3 border transition-all cursor-pointer space-y-2 ${
+                  onClick={() => setActiveModelId(model.id)}
+                  className={`rounded-2xl p-3.5 border transition-all cursor-pointer relative ${
                     isSelected
-                      ? 'bg-[#FFFFFF] border-[#2D7D54] shadow-[0_2px_8px_rgba(45,125,84,0.12)] ring-1.5 ring-[#2D7D54]'
-                      : 'bg-[#FAF8F5] border-[#E8E2D8] hover:border-[#D0C7B9] hover:bg-[#FFFFFF]'
+                      ? 'bg-white border-[#2D7D54] shadow-[0_2px_12px_rgba(45,125,84,0.1)] ring-1 ring-[#2D7D54]'
+                      : 'bg-white/80 hover:bg-white border-[#E8E2D8] hover:border-[#D5CFC3]'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                          isSelected
-                            ? 'border-[#2D7D54] bg-[#2D7D54] text-white'
-                            : 'border-[#CCC5B9] bg-[#FFFFFF]'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-bold text-xs text-[#2D2926] truncate">
-                            {model.name}
-                          </h4>
-                          {isSelected && (
-                            <span className="text-[9px] font-semibold text-[#236845] bg-[#EAF5EF] border border-[#BCE2CD] px-1.5 py-0.2 rounded shrink-0">
-                              사용 중
-                            </span>
-                          )}
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Left: Play/Pause Circular Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePreview(model);
+                      }}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 ${
+                        isPlaying
+                          ? 'bg-[#1E1B18] text-white shadow-md'
+                          : 'bg-[#F2EFE9] hover:bg-[#E7E2DA] text-[#2D2926]'
+                      }`}
+                      title={isPlaying ? '정지' : '미리듣기'}
+                    >
+                      {isPlaying ? (
+                        <div className="flex items-center gap-0.5 h-3.5">
+                          <span className="w-0.5 h-3 bg-[#4ADE80] rounded-full animate-pulse" />
+                          <span className="w-0.5 h-4 bg-[#4ADE80] rounded-full animate-bounce" />
+                          <span className="w-0.5 h-2 bg-[#4ADE80] rounded-full animate-pulse" />
                         </div>
-                        <span className="text-[10px] text-[#7A7268] font-mono">
-                          유사도 {model.similarityScore}% · {model.fileName}
+                      ) : (
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      )}
+                    </button>
+
+                    {/* Center: Info & Sample text */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-sm text-[#1E1B18] truncate">
+                          {model.name}
+                        </h4>
+
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F4F1EA] text-[#6B645C]">
+                          {model.toneStyle === 'calm' ? '차분함' : model.toneStyle === 'energetic' ? '활기참' : '따뜻함'}
+                        </span>
+
+                        <span className="text-[10px] text-[#8C8479]">
+                          일치율 {model.similarityScore}%
                         </span>
                       </div>
+
+                      {/* Natural sample phrase display without nested border box */}
+                      <p className="text-xs text-[#5C554E] mt-1.5 leading-relaxed line-clamp-2">
+                        &ldquo;{model.samplePhrase}&rdquo;
+                      </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {/* Audio Preview Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTogglePreview(model);
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all ${
-                          isPlaying
-                            ? 'bg-[#DC2626] text-white animate-pulse'
-                            : 'bg-[#EAF5EF] hover:bg-[#D5EBDE] text-[#236845] border border-[#CDE5D7]'
+                    {/* Right: Selection & Delete */}
+                    <div className="flex flex-col items-end justify-between h-full shrink-0 gap-3">
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? 'bg-[#2D7D54] text-white'
+                            : 'border border-[#CCC5B9] bg-[#FAF8F5]'
                         }`}
-                        title={isPlaying ? '정지' : '미리듣기'}
                       >
-                        {isPlaying ? (
-                          <>
-                            <Square className="w-3 h-3 fill-current" />
-                            <span>정지</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-3 h-3 fill-current" />
-                            <span>미리듣기</span>
-                          </>
-                        )}
-                      </button>
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
 
-                      {/* Delete Button */}
+                      {/* Delete icon */}
                       <button
                         type="button"
                         onClick={(e) => handleDeleteModel(model.id, e)}
-                        title="삭제"
-                        className="p-1 rounded-md text-[#A39B90] hover:text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
+                        title="보이스 삭제"
+                        className="p-1 rounded-md text-[#B5AEA4] hover:text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  </div>
-
-                  {/* Sample Phrase Preview */}
-                  <div className="bg-[#FFFFFF] border border-[#EDE8DF] rounded-lg px-2.5 py-1.5 text-[11px] text-[#554F47] italic truncate">
-                    "{model.samplePhrase}"
                   </div>
                 </div>
               );
@@ -360,46 +460,42 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
         )}
 
-        {/* Inline Button to Toggle MP3 Voice Training for this character */}
+        {/* Add Voice CTA Trigger */}
         <div>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               setShowTrainingForm((prev) => !prev);
-              setCustomVoiceName(`${isStudy ? '학습용' : '요리용'} 맞춤 목소리`);
-              setToneStyle(isStudy ? 'calm' : 'energetic');
+              setCustomVoiceName(`${character === 'study' ? '학습용' : '요리용'} 맞춤 보이스`);
+              setToneStyle(character === 'study' ? 'calm' : 'energetic');
             }}
-            className={`w-full py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+            className={`w-full py-3 px-4 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
               showTrainingForm
                 ? 'bg-[#F2EFE8] border-[#DDD7CD] text-[#554F47]'
-                : 'bg-[#FFFFFF] hover:bg-[#FAF8F5] border-dashed border-[#2D7D54] text-[#236845]'
+                : 'bg-white hover:bg-[#F9F7F3] border-[#2D7D54]/40 text-[#236845] shadow-xs active:scale-[0.99]'
             }`}
           >
             {showTrainingForm ? (
               <>
-                <ChevronUp className="w-3.5 h-3.5" />
-                <span>음성 학습 폼 접기</span>
+                <ChevronUp className="w-4 h-4" />
+                <span>음성 학습 닫기</span>
               </>
             ) : (
               <>
-                <Plus className="w-3.5 h-3.5" />
-                <span>[+ {isStudy ? '공부 메이트' : '요리 메이트'}에 새 MP3 목소리 학습 및 추가]</span>
+                <Plus className="w-4 h-4" />
+                <span>새 맞춤 목소리 추가 (MP3)</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Expandable Inline MP3 Training Box */}
+        {/* Inline AI Voice Studio Form */}
         {showTrainingForm && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-[#FFFFFF] border border-[#CDE5D7] rounded-xl p-3.5 space-y-3 shadow-sm animate-in fade-in slide-in-from-top-2"
-          >
-            <div className="flex items-center justify-between border-b border-[#EFEAE0] pb-2">
-              <span className="text-xs font-bold text-[#236845] flex items-center gap-1.5">
-                <UploadCloud className="w-4 h-4 text-[#2D7D54]" />
-                <span>{isStudy ? '공부 메이트' : '요리 메이트'} 전용 MP3 보이스 학습</span>
+          <div className="bg-white border border-[#E2DBD0] rounded-2xl p-4 space-y-4 shadow-sm animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-[#F0ECE4] pb-2.5">
+              <span className="text-xs font-bold text-[#1E1B18] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#2D7D54]" />
+                <span>AI 맞춤 보이스 생성</span>
               </span>
               <span className="text-[10px] text-[#8C8479]">Few-Shot TTS</span>
             </div>
@@ -416,25 +512,25 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             {/* Upload Drop Zone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border border-dashed border-[#BCE2CD] hover:border-[#2D7D54] rounded-xl p-3 bg-[#FAF8F5] text-center cursor-pointer transition-colors hover:bg-[#EAF5EF]/40"
+              className="border border-dashed border-[#C5BFB4] hover:border-[#2D7D54] rounded-xl p-3.5 bg-[#FAF8F5] text-center cursor-pointer transition-colors hover:bg-[#F2F8F4]"
             >
               <UploadCloud className="w-5 h-5 text-[#2D7D54] mx-auto mb-1" />
               <p className="text-xs font-semibold text-[#2D2926]">
-                내 PC/기기의 MP3 음성 파일 선택
+                음성 파일 업로드 (MP3 / WAV)
               </p>
               <p className="text-[10px] text-[#7A7268] mt-0.5">
-                선택된 파일: <strong className="text-[#236845]">{selectedFileName}</strong> ({fileSizeMb}MB)
+                선택됨: <span className="font-semibold text-[#236845]">{selectedFileName}</span> ({fileSizeMb}MB)
               </p>
             </div>
 
-            {/* Sample Audio Presets */}
-            <div className="space-y-1">
+            {/* Quick Demo Presets */}
+            <div className="space-y-1.5">
               <span className="text-[10px] text-[#827A70] block font-medium">
-                또는 준비된 예시 MP3 즉시 선택:
+                또는 준비된 샘플로 바로 체험:
               </span>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                 {demoAudioPresets
-                  .filter((p) => p.character === targetMode)
+                  .filter((p) => p.character === character)
                   .map((item, idx) => (
                     <button
                       key={idx}
@@ -444,25 +540,25 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         setFileSizeMb(item.size);
                         setFileDurationSec(item.duration);
                         setToneStyle(item.tone);
-                        setCustomVoiceName(item.name.replace(/\.[^/.]+$/, ''));
+                        setCustomVoiceName(item.label);
                       }}
-                      className={`text-[10px] px-2 py-1 rounded-lg border flex items-center gap-1 shrink-0 transition-all ${
+                      className={`text-[11px] px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 shrink-0 transition-all ${
                         selectedFileName === item.name
                           ? 'bg-[#EAF5EF] border-[#2D7D54] text-[#236845] font-bold'
-                          : 'bg-[#FAF8F5] border-[#E4DDD2] text-[#6E675E]'
+                          : 'bg-[#FAF8F5] border-[#E4DDD2] text-[#6E675E] hover:border-[#CCC4B7]'
                       }`}
                     >
                       <FileAudio className="w-3 h-3" />
-                      <span>{item.name}</span>
+                      <span>{item.label}</span>
                     </button>
                   ))}
               </div>
             </div>
 
-            {/* Inputs: Voice Name & Tone */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Name & Tone */}
+            <div className="grid grid-cols-2 gap-2.5">
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-[#38332E] block">
+                <label className="text-[11px] font-semibold text-[#554F47] block">
                   목소리 이름
                 </label>
                 <input
@@ -470,18 +566,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   value={customVoiceName}
                   onChange={(e) => setCustomVoiceName(e.target.value)}
                   placeholder="예: 내 차분한 보이스"
-                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-lg px-2.5 py-1.5 text-xs text-[#2D2926] focus:outline-none"
+                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-3 py-2 text-xs text-[#2D2926] focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-[#38332E] block">
-                  음향 톤 스타일
+                <label className="text-[11px] font-semibold text-[#554F47] block">
+                  음향 톤
                 </label>
                 <select
                   value={toneStyle}
                   onChange={(e) => setToneStyle(e.target.value as any)}
-                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-[#FFFFFF] rounded-lg px-2 py-1.5 text-xs text-[#2D2926] focus:outline-none cursor-pointer"
+                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-2.5 py-2 text-xs text-[#2D2926] focus:outline-none cursor-pointer"
                 >
                   <option value="calm">차분함 / 중저음</option>
                   <option value="energetic">활기참 / 높은 명료도</option>
@@ -490,16 +586,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </div>
             </div>
 
-            {/* Training Action or Progress */}
+            {/* Action / Progress */}
             {isTraining ? (
-              <div className="bg-[#FAF8F5] border border-[#BCE2CD] rounded-xl p-3 space-y-2">
+              <div className="bg-[#FAF8F5] border border-[#BCE2CD] rounded-xl p-3.5 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#236845] flex items-center gap-1.5 text-[11px]">
-                    <RefreshCw className="w-3 h-3 animate-spin" />
-                    {trainingStep === 1 && '1/4 잡음 제거 및 정규화 진행 중...'}
-                    {trainingStep === 2 && '2/4 성문 음향 특징 추출 중...'}
-                    {trainingStep === 3 && '3/4 Zero-Shot TTS 미세조정 중...'}
-                    {trainingStep === 4 && '4/4 캐릭터 보이스 모듈에 탑재 중...'}
+                  <span className="font-semibold text-[#236845] flex items-center gap-2 text-[11px]">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    {trainingStep === 1 && '잡음 제거 및 음성 정규화 중...'}
+                    {trainingStep === 2 && '성문 음향 특징 추출 중...'}
+                    {trainingStep === 3 && 'Zero-Shot TTS 미세조정 중...'}
+                    {trainingStep === 4 && '캐릭터 보이스 모듈에 탑재 중...'}
                   </span>
                   <span className="font-mono text-[#236845] font-bold text-xs">{trainingProgress}%</span>
                 </div>
@@ -514,150 +610,45 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <button
                 type="button"
                 onClick={handleStartTraining}
-                className="w-full py-2.5 px-3 rounded-xl bg-[#2D7D54] hover:bg-[#256643] active:scale-[0.98] text-[#FFFFFF] font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#2D7D54] hover:bg-[#256643] active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5 fill-white" />
-                <span>[이 파일로 AI 목소리 학습 시작하기 🚀]</span>
+                <span>AI 목소리 학습 시작</span>
               </button>
             )}
           </div>
         )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)] pb-28 max-w-md mx-auto px-4 py-4 space-y-5">
-      {/* Save Success Alert Banner */}
-      {saveSuccessMsg && (
-        <div className="bg-[#EAF5EF] border border-[#BCE2CD] rounded-xl p-3 flex items-center gap-2.5 text-[#236845] text-xs font-semibold animate-in fade-in slide-in-from-top-2 shadow-sm">
-          <CheckCircle className="w-4 h-4 text-[#2D7D54] shrink-0" />
-          <span>{saveSuccessMsg}</span>
-        </div>
-      )}
-
-      {/* SECTION: Character Selection with Direct Inline Voice Selection */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#7A7268] flex items-center gap-1.5">
-            <span>로봇 특화 캐릭터 & 보이스 설정</span>
-          </h2>
-          <span className="text-[10px] text-[#8C8479]">캐릭터 선택 시 아래에 보이스가 표시됩니다</span>
-        </div>
-
-        <div className="space-y-3">
-          {/* 1. Study Mate Card */}
-          <div
-            onClick={() => handleSelectCharacter('study')}
-            className={`cursor-pointer rounded-2xl p-4 border transition-all relative overflow-hidden ${
-              character === 'study'
-                ? 'bg-[#F4F8FC] border-[#3B82F6] shadow-[0_2px_8px_rgba(59,130,246,0.12)] ring-1 ring-[#3B82F6]/50'
-                : 'bg-[#FFFFFF] border-[#E8E2D8] hover:border-[#D0C7B9]'
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                    character === 'study'
-                      ? 'bg-[#3B82F6] text-white font-bold'
-                      : 'bg-[#FAF8F5] text-[#7A7268] border border-[#E2DBD0]'
-                  }`}
-                >
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-[#2D2926]">📚 공부 메이트</h3>
-                    <span className="text-[10px] font-mono text-[#2563EB] px-1.5 py-0.5 rounded bg-[#EEF4FB] border border-[#BCD9FA]">
-                      Study Mate
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#6B645C] mt-0.5">
-                    차분하고 논리적인 톤, 집중을 돕는 간결한 피드백
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
-                  character === 'study'
-                    ? 'border-[#3B82F6] bg-[#3B82F6] text-white'
-                    : 'border-[#DDD7CD] bg-[#FAF8F5]'
-                }`}
-              >
-                {character === 'study' && <Check className="w-3 h-3 stroke-[3]" />}
-              </div>
-            </div>
-
-            {/* DIRECT INLINE VOICE SELECTION: Displayed right below when Study Mate is selected */}
-            {character === 'study' && renderVoiceListForCharacter('study', studyModels)}
-          </div>
-
-          {/* 2. Cooking Mate Card */}
-          <div
-            onClick={() => handleSelectCharacter('cooking')}
-            className={`cursor-pointer rounded-2xl p-4 border transition-all relative overflow-hidden ${
-              character === 'cooking'
-                ? 'bg-[#FFF7F2] border-[#EA580C] shadow-[0_2px_8px_rgba(234,88,12,0.12)] ring-1 ring-[#EA580C]/50'
-                : 'bg-[#FFFFFF] border-[#E8E2D8] hover:border-[#D0C7B9]'
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                    character === 'cooking'
-                      ? 'bg-[#EA580C] text-white font-bold'
-                      : 'bg-[#FAF8F5] text-[#7A7268] border border-[#E2DBD0]'
-                  }`}
-                >
-                  <Utensils className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-[#2D2926]">🍳 요리 메이트</h3>
-                    <span className="text-[10px] font-mono text-[#EA580C] px-1.5 py-0.5 rounded bg-[#FFF0E6] border border-[#FCD2B5]">
-                      Cooking Mate
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#6B645C] mt-0.5">
-                    활기차고 명확한 톤, 조리 순서 가이드 및 타이머
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
-                  character === 'cooking'
-                    ? 'border-[#EA580C] bg-[#EA580C] text-white'
-                    : 'border-[#DDD7CD] bg-[#FAF8F5]'
-                }`}
-              >
-                {character === 'cooking' && <Check className="w-3 h-3 stroke-[3]" />}
-              </div>
-            </div>
-
-            {/* DIRECT INLINE VOICE SELECTION: Displayed right below when Cooking Mate is selected */}
-            {character === 'cooking' && renderVoiceListForCharacter('cooking', cookingModels)}
-          </div>
-        </div>
       </section>
 
-      {/* Save Button */}
-      <div className="pt-2">
+      {/* SECTION 3: Save & Sync CTA */}
+      <div className="pt-2 space-y-2">
         <button
           onClick={handleSave}
           disabled={isLoading}
-          className="w-full py-3.5 px-4 rounded-xl bg-[#2D7D54] hover:bg-[#256643] active:scale-[0.98] text-[#FFFFFF] font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-3.5 px-5 rounded-2xl bg-[#1E1B18] hover:bg-[#2E2A26] active:scale-[0.98] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Sparkles className="w-4 h-4 fill-white" />
-          <span>[설정 저장 및 로봇 실시간 동기화]</span>
+          <Sparkles className="w-4 h-4 text-[#FDE047]" />
+          <span>설정 저장 및 로봇 동기화</span>
         </button>
-        <p className="text-[10px] text-center text-[#8C8479] mt-2">
-          저장 시 MindMate 로봇에 선택된 캐릭터와 학습 목소리가 즉시 동기화됩니다.
+        <p className="text-[11px] text-center text-[#8C8479]">
+          저장 즉시 로봇의 발화 목소리와 대화 성향이 전환됩니다
         </p>
+      </div>
+
+      {/* Cloud & Device Status Footer */}
+      <div className="bg-white/80 border border-[#E8E2D8] rounded-2xl px-4 py-3 flex items-center justify-between text-xs text-[#7A7268]">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2D7D54] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2D7D54]"></span>
+          </span>
+          <span className="font-medium text-[#2D2926]">클라우드 DB 동기화 정상</span>
+        </div>
+        <span className="font-mono text-[10px] font-semibold text-[#8C8479] bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#E2DBD0]">
+          MindMate Core v2.1
+        </span>
       </div>
     </div>
   );
 };
+
