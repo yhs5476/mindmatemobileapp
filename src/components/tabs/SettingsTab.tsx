@@ -58,9 +58,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [isPinging, setIsPinging] = useState(false);
   const [pingResult, setPingResult] = useState<{ online: boolean; latencyMs?: number; error?: string } | null>(null);
   
-  // Login credentials state
-  const [loginUserId, setLoginUserId] = useState<string>(serverConfig?.userId || 'johangjoo');
-  const [loginApiKey, setLoginApiKey] = useState<string>(serverConfig?.apiKey || 'mk_a5af41a863e38ef3eaa5d010ed7d3a383edc8a0f195d116313f88b6c6068eede');
+  // Login credentials state (Clean: no hardcoded credentials for production deployment)
+  const [loginUserId, setLoginUserId] = useState<string>(serverConfig?.userId || '');
+  const [loginApiKey, setLoginApiKey] = useState<string>(serverConfig?.apiKey || '');
   const [serverBaseUrl, setServerBaseUrl] = useState<string>(serverConfig?.baseUrl || 'https://mindmate.brewertranslator.cloud');
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAdvancedUrl, setShowAdvancedUrl] = useState(false);
@@ -89,9 +89,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   useEffect(() => {
     if (serverConfig) {
-      setLoginUserId(serverConfig.userId);
-      setLoginApiKey(serverConfig.apiKey);
-      setServerBaseUrl(serverConfig.baseUrl);
+      setLoginUserId(serverConfig.userId || '');
+      setLoginApiKey(serverConfig.apiKey || '');
+      if (serverConfig.baseUrl) {
+        setServerBaseUrl(serverConfig.baseUrl);
+      }
     }
   }, [serverConfig]);
 
@@ -113,10 +115,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     }
   };
 
-  const handleFillJohangjoo = () => {
-    setLoginUserId('johangjoo');
-    setLoginApiKey('mk_a5af41a863e38ef3eaa5d010ed7d3a383edc8a0f195d116313f88b6c6068eede');
-    setServerBaseUrl('https://mindmate.brewertranslator.cloud');
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem('mindmate_active_user');
+    } catch {}
+    setLoginUserId('');
+    setLoginApiKey('');
+    if (onSwitchServer) {
+      await onSwitchServer(undefined, {
+        userId: '',
+        apiKey: '',
+        userName: '',
+      });
+    }
   };
 
 
@@ -734,15 +745,27 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold text-[#7A7268] uppercase">현재 접속 계정</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                  <span className="text-[10px] font-bold text-[#7A7268] uppercase">
+                    {serverConfig?.userId && serverConfig?.apiKey ? '현재 접속 계정' : '계정 연결 필요'}
+                  </span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${serverConfig?.userId && serverConfig?.apiKey ? 'bg-[#22C55E]' : 'bg-[#D97706]'}`} />
                 </div>
                 <h3 className="text-xs font-bold text-[#236845] truncate font-mono">
-                  {serverConfig?.userId || loginUserId || '연결 대기'}
+                  {serverConfig?.userId && serverConfig?.apiKey ? serverConfig.userId : '로그인이 필요합니다'}
                 </h3>
               </div>
             </div>
-            <div className="text-right shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              {serverConfig?.userId && serverConfig?.apiKey && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-[10px] text-[#DC2626] hover:text-[#991B1B] bg-white hover:bg-[#FEE2E2] border border-[#FCA5A5] px-2 py-0.5 rounded-md font-medium transition-colors shadow-2xs"
+                  title="현재 계정 로그아웃"
+                >
+                  로그아웃
+                </button>
+              )}
               <span className="text-[10px] bg-white text-[#236845] border border-[#CDE5D7] px-2 py-0.5 rounded-md font-mono">
                 {serverConfig?.target === 'local' ? 'Local DB' : 'Cloud DB'}
               </span>
@@ -761,7 +784,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 type="text"
                 value={loginUserId}
                 onChange={(e) => setLoginUserId(e.target.value)}
-                placeholder="user_id 입력 (예: johangjoo)"
+                placeholder="User ID를 입력하세요"
                 required
                 className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-3 py-2 text-xs text-[#2D2926] font-mono focus:outline-none transition-colors"
               />
@@ -797,7 +820,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   type={showApiKey ? 'text' : 'password'}
                   value={loginApiKey}
                   onChange={(e) => setLoginApiKey(e.target.value)}
-                  placeholder="mk_... API Key 입력"
+                  placeholder="API Key를 입력하세요"
                   required
                   className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-3 py-2 pr-9 text-xs text-[#2D2926] font-mono focus:outline-none transition-colors"
                 />
@@ -829,8 +852,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               )}
             </div>
 
-            {/* Quick Fill Preset Button & Login CTA */}
-            <div className="pt-2 space-y-2">
+            {/* Login CTA */}
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoggingIn || !loginUserId.trim() || !loginApiKey.trim()}
@@ -847,16 +870,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     <span>입력한 계정으로 로그인 및 DB 전환</span>
                   </>
                 )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleFillJohangjoo}
-                className="w-full py-1.5 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F2EFE8] border border-[#DDD7CD] text-[#6E675E] text-[11px] font-medium transition-colors flex items-center justify-center gap-1"
-                title="조항주 계정 정보 자동 채우기"
-              >
-                <RotateCcw className="w-3 h-3 text-[#2D7D54]" />
-                <span>조항주 (johangjoo) 계정 정보 채우기</span>
               </button>
             </div>
           </form>

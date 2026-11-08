@@ -319,7 +319,17 @@ export const ConversationTab: React.FC<ConversationTabProps> = ({
       </section>
 
       {/* 3. Queried Memory Records Display Area: ONLY memory_facts Table Context */}
-      {!hasQueried ? (
+      {!serverConfig?.userId || !serverConfig?.apiKey ? (
+        <div className="bg-[#FAF8F5] border border-dashed border-[#DDD7CD] rounded-2xl p-8 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#EAF5EF] text-[#2D7D54] flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="text-sm font-bold text-[#2D2926]">로그인이 필요합니다</h3>
+          <p className="text-xs text-[#7A7268] max-w-xs mx-auto leading-relaxed">
+            원격 DB의 장기기억(memory_facts)을 조회하고 관리하려면 하단 <span className="font-semibold text-[#236845]">[설정]</span> 탭에서 User ID와 API Key로 로그인해주세요.
+          </p>
+        </div>
+      ) : !hasQueried ? (
         <div className="bg-[#FAF8F5] border border-dashed border-[#DDD7CD] rounded-2xl p-8 text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-[#EFECE6] text-[#8C8479] flex items-center justify-center mx-auto">
             <Brain className="w-6 h-6 text-[#2D7D54]" />

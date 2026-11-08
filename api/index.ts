@@ -116,45 +116,35 @@ export interface ServerPreset {
 
 export const SERVER_PRESETS: ServerPreset[] = [
   {
-    id: 'cloud_johangjoo',
-    name: '클라우드 DB: 조항주 (실서버)',
+    id: 'cloud_default',
+    name: 'MindMate 클라우드 DB',
     target: 'cloud',
-    baseUrl: 'https://mindmate.brewertranslator.cloud',
-    userId: 'johangjoo',
-    userName: '조항주',
-    apiKey: 'mk_a5af41a863e38ef3eaa5d010ed7d3a383edc8a0f195d116313f88b6c6068eede',
-    description: 'PostgreSQL + pgvector 원격 실서버 (162개 장기기억 및 세션 적재됨)',
+    baseUrl: process.env.MINDMATE_API_URL || 'https://mindmate.brewertranslator.cloud',
+    userId: process.env.MINDMATE_USER_ID || '',
+    userName: process.env.MINDMATE_USER_NAME || '',
+    apiKey: process.env.MINDMATE_API_KEY || '',
+    description: 'PostgreSQL + pgvector 원격 실서버',
   },
   {
     id: 'local_fastapi',
-    name: '로컬 FastAPI 서버 (user_default)',
+    name: '로컬 개발 서버',
     target: 'local',
     baseUrl: 'http://localhost:8000',
     userId: 'user_default',
-    userName: 'user_default (데모)',
+    userName: 'user_default',
     apiKey: 'mk_demo_character_memory',
-    description: '로컬 Docker/Uvicorn 환경 (seed_character_memory.py 기본 계정)',
-  },
-  {
-    id: 'cloud_yangheeseong',
-    name: '클라우드 DB: 양희성 (AI 개발자)',
-    target: 'cloud',
-    baseUrl: 'https://mindmate.brewertranslator.cloud',
-    userId: 'test3',
-    userName: '양희성',
-    apiKey: 'mk_demo_character_memory',
-    description: '클라우드 DB 등록 계정 (로봇 이름: 네오)',
+    description: '로컬 Docker/Uvicorn 개발 환경',
   },
 ];
 
 let activeServerConfig: ServerPreset = {
-  id: 'cloud_johangjoo',
-  name: '클라우드 DB: 조항주 (실서버)',
+  id: 'cloud_active',
+  name: 'MindMate 클라우드 DB',
   target: (process.env.MINDMATE_API_URL?.includes('localhost') ? 'local' : 'cloud') as any,
-  baseUrl: process.env.MINDMATE_API_URL || SERVER_PRESETS[0].baseUrl,
-  userId: process.env.MINDMATE_USER_ID || SERVER_PRESETS[0].userId,
-  userName: '조항주',
-  apiKey: process.env.MINDMATE_API_KEY || SERVER_PRESETS[0].apiKey,
+  baseUrl: process.env.MINDMATE_API_URL || 'https://mindmate.brewertranslator.cloud',
+  userId: process.env.MINDMATE_USER_ID || '',
+  userName: process.env.MINDMATE_USER_NAME || '',
+  apiKey: process.env.MINDMATE_API_KEY || '',
   description: 'PostgreSQL + pgvector 실시간 연동',
 };
 
@@ -709,6 +699,16 @@ app.get('/api/v1/chats', async (req, res) => {
   const queryDate = (req.query.date as string) || '2026-10-28';
   let availableDates: string[] = ['2026-10-29', '2026-10-28', '2026-10-05', '2026-09-27'];
 
+  if (!activeServerConfig.userId || !activeServerConfig.apiKey) {
+    return res.json({
+      success: true,
+      requiresLogin: true,
+      message: '로그인이 필요합니다. [설정] 탭에서 User ID와 API Key를 입력해주세요.',
+      data: [],
+      availableDates: [],
+    });
+  }
+
   try {
     // 1. Fetch sessions and facts simultaneously from PostgreSQL server
     const [remoteSessionsRes, remoteFactsRes] = await Promise.all([
@@ -1213,6 +1213,21 @@ app.post('/api/v1/server/config', async (req, res) => {
         active: activeServerConfig,
       });
     }
+  }
+
+  if (userId === '' && apiKey === '') {
+    updateActiveServerConfig({
+      userId: '',
+      apiKey: '',
+      userName: '',
+      id: 'unauthenticated',
+      name: '연결 대기 (미로그인)',
+    });
+    return res.json({
+      success: true,
+      message: '성공적으로 로그아웃되었습니다.',
+      active: activeServerConfig,
+    });
   }
 
   const effectiveBaseUrl = (baseUrl || activeServerConfig.baseUrl || 'https://mindmate.brewertranslator.cloud').replace(/\/$/, '');

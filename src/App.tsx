@@ -160,6 +160,10 @@ export const App: React.FC = () => {
                 userName: json.active.userName,
               })
             );
+          } else {
+            localStorage.removeItem('mindmate_active_user');
+            setMessages([]);
+            setFacts([]);
           }
         } catch {}
         showToast(`✨ ${json.message || '로그인 및 DB 전환이 완료되었습니다.'}`);
@@ -168,7 +172,7 @@ export const App: React.FC = () => {
         fetchChats(selectedDate);
         fetchFacts();
         fetchMemoryPack(profile.character);
-              } else {
+      } else {
         showToast(`❌ ${json.message || '로그인에 실패했습니다.'}`);
       }
     } catch (err) {
@@ -242,6 +246,32 @@ export const App: React.FC = () => {
     fetchProactive();
     fetchFacts();
     fetchMemoryPack(profile.character);
+
+    // Restore saved user credentials from localStorage
+    try {
+      const saved = localStorage.getItem('mindmate_active_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.userId && parsed.apiKey) {
+          fetch('/api/v1/server/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsed),
+          })
+            .then((r) => r.json())
+            .then((json) => {
+              if (json.success && json.active) {
+                setServerConfig(json.active);
+                fetchStatus();
+                fetchChats(selectedDate);
+                fetchFacts();
+                fetchMemoryPack(profile.character);
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    } catch {}
 
     // Step 1: Zero-Step Discovery - Automatically load today's chats on initial launch
     fetchChats(selectedDate);
