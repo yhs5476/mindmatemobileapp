@@ -23,6 +23,14 @@ export interface ChatMessage {
   text: string;
   edited?: boolean;
   confidence?: number;
+  // Fact properties from memory_facts table
+  isFact?: boolean;
+  factId?: number | string;
+  domainTags?: string[];
+  scope?: string;
+  ownerCharacterId?: string | null;
+  importance?: number;
+  summaryForPrompt?: string | null;
 }
 
 export interface MemoryFact {
@@ -167,3 +175,21 @@ export interface RobotProfile {
   pitch: number; // 0.8 to 1.2
   updatedAt: string;
 }
+
+export interface ServerPreset {
+  id: string;
+  name: string;
+  target: 'cloud' | 'local' | 'custom';
+  baseUrl: string;
+  userId: string;
+  userName: string;
+  apiKey: string;
+  description: string;
+}
+
+export interface ServerConfigResponse {
+  success: boolean;
+  active: ServerPreset;
+  presets: ServerPreset[];
+}
+

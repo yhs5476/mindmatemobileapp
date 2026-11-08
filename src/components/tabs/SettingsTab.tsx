@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RobotProfile, CharacterMode, TrainedVoiceModel } from '../../types';
+import { RobotProfile, CharacterMode, TrainedVoiceModel, ServerPreset } from '../../types';
 import { playVoiceSample } from '../../utils/audio';
 import {
   BookOpen,
@@ -7,7 +7,6 @@ import {
   UploadCloud,
   FileAudio,
   Play,
-  Square,
   Check,
   Sparkles,
   Trash2,
@@ -16,20 +15,37 @@ import {
   AudioLines,
   Volume2,
   ChevronUp,
-  Sliders,
   CheckCircle2,
+  Server,
+  Zap,
+  Activity,
+  ChevronDown,
+  Globe,
+  KeyRound,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  RotateCcw,
 } from 'lucide-react';
 
 interface SettingsTabProps {
   profile: RobotProfile;
   onSaveProfile: (profile: Partial<RobotProfile>) => Promise<void>;
   isLoading: boolean;
+  serverConfig?: ServerPreset | null;
+  serverPresets?: ServerPreset[];
+  onSwitchServer?: (presetId?: string, custom?: Partial<ServerPreset>) => Promise<void>;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   profile,
   onSaveProfile,
   isLoading,
+  serverConfig,
+  serverPresets = [],
+  onSwitchServer,
 }) => {
   const [character, setCharacter] = useState<CharacterMode>(profile.character);
 
@@ -37,6 +53,74 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [trainedModels, setTrainedModels] = useState<TrainedVoiceModel[]>([]);
   const [activeModelId, setActiveModelId] = useState<string>(profile.activeVoiceModelId || '');
   const [, setIsModelsLoading] = useState(false);
+
+  // Server management & login state
+  const [isPinging, setIsPinging] = useState(false);
+  const [pingResult, setPingResult] = useState<{ online: boolean; latencyMs?: number; error?: string } | null>(null);
+  
+  // Login credentials state
+  const [loginUserId, setLoginUserId] = useState<string>(serverConfig?.userId || 'johangjoo');
+  const [loginApiKey, setLoginApiKey] = useState<string>(serverConfig?.apiKey || 'mk_a5af41a863e38ef3eaa5d010ed7d3a383edc8a0f195d116313f88b6c6068eede');
+  const [serverBaseUrl, setServerBaseUrl] = useState<string>(serverConfig?.baseUrl || 'https://mindmate.brewertranslator.cloud');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showAdvancedUrl, setShowAdvancedUrl] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Handle server ping test
+  const handlePingServer = async () => {
+    try {
+      setIsPinging(true);
+      const res = await fetch('/api/v1/server/ping');
+      const json = await res.json();
+      setPingResult({
+        online: json.online,
+        latencyMs: json.latencyMs,
+        error: json.error,
+      });
+    } catch (err: any) {
+      setPingResult({
+        online: false,
+        error: err.message,
+      });
+    } finally {
+      setIsPinging(false);
+    }
+  };
+
+  useEffect(() => {
+    if (serverConfig) {
+      setLoginUserId(serverConfig.userId);
+      setLoginApiKey(serverConfig.apiKey);
+      setServerBaseUrl(serverConfig.baseUrl);
+    }
+  }, [serverConfig]);
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!loginUserId.trim() || !loginApiKey.trim() || isLoggingIn) return;
+    setIsLoggingIn(true);
+    try {
+      if (onSwitchServer) {
+        await onSwitchServer(undefined, {
+          userId: loginUserId.trim(),
+          apiKey: loginApiKey.trim(),
+          baseUrl: serverBaseUrl.trim(),
+          userName: loginUserId.trim(),
+        });
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleFillJohangjoo = () => {
+    setLoginUserId('johangjoo');
+    setLoginApiKey('mk_a5af41a863e38ef3eaa5d010ed7d3a383edc8a0f195d116313f88b6c6068eede');
+    setServerBaseUrl('https://mindmate.brewertranslator.cloud');
+  };
+
+
+
 
   // Expandable inline training form state
   const [showTrainingForm, setShowTrainingForm] = useState<boolean>(false);
@@ -620,7 +704,166 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         )}
       </section>
 
-      {/* SECTION 3: Save & Sync CTA */}
+      {/* SECTION 3: Long-term Memory DB Login & Account Switch */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between px-0.5">
+          <div className="flex items-center gap-1.5">
+            <KeyRound className="w-4 h-4 text-[#2D7D54]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#8A8276]">
+              장기기억 DB 로그인 & 계정 전환
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={handlePingServer}
+            disabled={isPinging}
+            className="text-[10px] font-semibold text-[#2D7D54] hover:text-[#236845] flex items-center gap-1 bg-[#EAF5EF] hover:bg-[#DDF0E4] px-2 py-0.5 rounded-full border border-[#CDE5D7] transition-all"
+          >
+            <Activity className={`w-3 h-3 ${isPinging ? 'animate-spin' : ''}`} />
+            <span>{isPinging ? '확인 중...' : pingResult?.latencyMs ? `${pingResult.latencyMs}ms 정상` : '연결 핑 테스트'}</span>
+          </button>
+        </div>
+
+        {/* Login & Connection Card */}
+        <div className="bg-white border border-[#E8E2D8] rounded-2xl p-4 space-y-4 shadow-xs">
+          {/* Active Account Status Badge */}
+          <div className="bg-gradient-to-r from-[#F2F8F4] to-[#FAFDFB] border border-[#CDE5D7] rounded-xl p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[#EAF5EF] text-[#2D7D54] flex items-center justify-center shrink-0 border border-[#BCE2CD]">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-[#7A7268] uppercase">현재 접속 계정</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                </div>
+                <h3 className="text-xs font-bold text-[#236845] truncate font-mono">
+                  {serverConfig?.userId || loginUserId || '연결 대기'}
+                </h3>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] bg-white text-[#236845] border border-[#CDE5D7] px-2 py-0.5 rounded-md font-mono">
+                {serverConfig?.target === 'local' ? 'Local DB' : 'Cloud DB'}
+              </span>
+            </div>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleLogin} className="space-y-3">
+            {/* User ID Field */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-[#403B35] flex items-center gap-1">
+                <User className="w-3 h-3 text-[#2D7D54]" />
+                <span>User ID</span>
+              </label>
+              <input
+                type="text"
+                value={loginUserId}
+                onChange={(e) => setLoginUserId(e.target.value)}
+                placeholder="user_id 입력 (예: johangjoo)"
+                required
+                className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-3 py-2 text-xs text-[#2D2926] font-mono focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* API Key Field */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-[#403B35] flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-[#2D7D54]" />
+                  <span>API Key</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="text-[10px] text-[#7A7268] hover:text-[#2D2926] flex items-center gap-1 font-normal"
+                >
+                  {showApiKey ? (
+                    <>
+                      <EyeOff className="w-3 h-3" />
+                      <span>숨기기</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3 h-3" />
+                      <span>표시</span>
+                    </>
+                  )}
+                </button>
+              </label>
+              <div className="relative">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={loginApiKey}
+                  onChange={(e) => setLoginApiKey(e.target.value)}
+                  placeholder="mk_... API Key 입력"
+                  required
+                  className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-3 py-2 pr-9 text-xs text-[#2D2926] font-mono focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Advanced: Base URL Toggle */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedUrl(!showAdvancedUrl)}
+                className="text-[10px] text-[#7A7268] hover:text-[#2D2926] flex items-center gap-1 transition-colors"
+              >
+                <Globe className="w-3 h-3 text-[#8C8479]" />
+                <span>고급 설정: 서버 주소 변경 (기본: 클라우드 DB)</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${showAdvancedUrl ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showAdvancedUrl && (
+                <div className="mt-2 space-y-1 animate-in fade-in">
+                  <input
+                    type="text"
+                    value={serverBaseUrl}
+                    onChange={(e) => setServerBaseUrl(e.target.value)}
+                    placeholder="https://mindmate.brewertranslator.cloud"
+                    className="w-full bg-[#FAF8F5] border border-[#DDD7CD] focus:border-[#2D7D54] focus:bg-white rounded-xl px-3 py-1.5 text-[11px] text-[#2D2926] font-mono focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Quick Fill Preset Button & Login CTA */}
+            <div className="pt-2 space-y-2">
+              <button
+                type="submit"
+                disabled={isLoggingIn || !loginUserId.trim() || !loginApiKey.trim()}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#2D7D54] hover:bg-[#256643] active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Activity className="w-3.5 h-3.5 animate-spin" />
+                    <span>계정 인증 및 DB 연결 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5 fill-white" />
+                    <span>입력한 계정으로 로그인 및 DB 전환</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFillJohangjoo}
+                className="w-full py-1.5 px-3 rounded-lg bg-[#FAF8F5] hover:bg-[#F2EFE8] border border-[#DDD7CD] text-[#6E675E] text-[11px] font-medium transition-colors flex items-center justify-center gap-1"
+                title="조항주 계정 정보 자동 채우기"
+              >
+                <RotateCcw className="w-3 h-3 text-[#2D7D54]" />
+                <span>조항주 (johangjoo) 계정 정보 채우기</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      {/* SECTION 4: Save & Sync CTA */}
       <div className="pt-2 space-y-2">
         <button
           onClick={handleSave}
@@ -630,6 +873,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <Sparkles className="w-4 h-4 text-[#FDE047]" />
           <span>설정 저장 및 로봇 동기화</span>
         </button>
+
         <p className="text-[11px] text-center text-[#8C8479]">
           저장 즉시 로봇의 발화 목소리와 대화 성향이 전환됩니다
         </p>

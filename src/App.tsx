@@ -11,6 +11,8 @@ import {
   RobotProfile,
   RobotStatus,
   CharacterMode,
+  ServerPreset,
+  CharacterMemoryPack,
 } from './types';
 
 export const App: React.FC = () => {
@@ -25,11 +27,21 @@ export const App: React.FC = () => {
     deviceName: 'MindMate-01',
   });
 
-  // Date & Chats State: Auto-query enabled
-  const [selectedDate, setSelectedDate] = useState<string>('2026-09-27');
+  // Server Configuration & Connection State
+  const [serverConfig, setServerConfig] = useState<ServerPreset | null>(null);
+  const [serverPresets, setServerPresets] = useState<ServerPreset[]>([]);
+
+  // Date & Chats State: Auto-query enabled for Today (2026-10-28)
+  const [selectedDate, setSelectedDate] = useState<string>('2026-10-28');
   const [hasQueried, setHasQueried] = useState<boolean>(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [isChatsLoading, setIsChatsLoading] = useState<boolean>(false);
+
+  // Character-aware Realtime Memory Pack State
+  const [memoryPack, setMemoryPack] = useState<CharacterMemoryPack | null>(null);
+  const [isMemoryPackLoading, setIsMemoryPackLoading] = useState<boolean>(false);
+
 
   // Long-term Memory Facts State
   const [facts, setFacts] = useState<MemoryFact[]>([]);
@@ -91,6 +103,80 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Fetch Server Configuration
+  const fetchServerConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/server/config');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.active) {
+          setServerConfig(json.active);
+          setServerPresets(json.presets || []);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch server config', err);
+    }
+  }, []);
+
+  // Fetch Realtime Memory Pack for Active Character
+  const fetchMemoryPack = useCallback(async (char?: CharacterMode) => {
+    const targetChar = char || profile.character;
+    try {
+      setIsMemoryPackLoading(true);
+      const res = await fetch(`/api/v1/characters/${targetChar}/memory-pack`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setMemoryPack(json.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch memory pack', err);
+    } finally {
+      setIsMemoryPackLoading(false);
+    }
+  }, [profile.character]);
+
+  // Switch Server Connection / Account Login
+  const handleSwitchServer = async (presetId?: string, custom?: Partial<ServerPreset>) => {
+    try {
+      const res = await fetch('/api/v1/server/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presetId, ...custom }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setServerConfig(json.active);
+        try {
+          if (json.active.userId && json.active.apiKey) {
+            localStorage.setItem(
+              'mindmate_active_user',
+              JSON.stringify({
+                userId: json.active.userId,
+                apiKey: json.active.apiKey,
+                baseUrl: json.active.baseUrl,
+                userName: json.active.userName,
+              })
+            );
+          }
+        } catch {}
+        showToast(`✨ ${json.message || '로그인 및 DB 전환이 완료되었습니다.'}`);
+        // Reload everything from the newly connected server
+        fetchStatus();
+        fetchChats(selectedDate);
+        fetchFacts();
+        fetchMemoryPack(profile.character);
+              } else {
+        showToast(`❌ ${json.message || '로그인에 실패했습니다.'}`);
+      }
+    } catch (err) {
+      console.error('Failed to switch server', err);
+      showToast('로그인 요청 중 오류가 발생했습니다.');
+    }
+  };
+
   // Fetch Chats by Date
   const fetchChats = useCallback(async (date: string) => {
     try {
@@ -100,6 +186,9 @@ export const App: React.FC = () => {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           setMessages(json.data);
+          if (Array.isArray(json.availableDates)) {
+            setAvailableDates(json.availableDates);
+          }
         }
       }
     } catch (err) {
@@ -147,10 +236,12 @@ export const App: React.FC = () => {
 
   // Periodic poll for status & initial loads
   useEffect(() => {
+    fetchServerConfig();
     fetchStatus();
     fetchProfile();
     fetchProactive();
     fetchFacts();
+    fetchMemoryPack(profile.character);
 
     // Step 1: Zero-Step Discovery - Automatically load today's chats on initial launch
     fetchChats(selectedDate);
@@ -158,10 +249,10 @@ export const App: React.FC = () => {
 
     const interval = setInterval(() => {
       fetchStatus();
-    }, 3000);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [fetchStatus, fetchProfile, fetchProactive, fetchFacts, fetchChats, selectedDate]);
+  }, [fetchServerConfig, fetchStatus, fetchProfile, fetchProactive, fetchFacts, fetchMemoryPack, fetchChats, selectedDate, profile.character]);
 
   // Handle Online/Offline toggle
   const handleToggleOnline = async () => {
@@ -264,16 +355,76 @@ export const App: React.FC = () => {
     }
   };
 
-  // Chat message delete (Remove from long term memory)
+  // Update memory fact (memory_facts table in PostgreSQL)
+  const handleUpdateFact = async (
+    memoryId: number | string,
+    content: string,
+    summaryForPrompt?: string
+  ) => {
+    try {
+      const res = await fetch(`/api/v1/facts/${memoryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, summary_for_prompt: summaryForPrompt }),
+      });
+      if (res.ok) {
+        setFacts((prev) =>
+          prev.map((f) =>
+            String(f.memory_id) === String(memoryId)
+              ? {
+                  ...f,
+                  content,
+                  summary_for_prompt: summaryForPrompt !== undefined ? summaryForPrompt : f.summary_for_prompt,
+                }
+              : f
+          )
+        );
+        showToast('✨ 장기기억(memory_facts)이 성공적으로 수정되었습니다.');
+        // Refresh memory pack so character prompts reflect the change immediately
+        fetchMemoryPack(profile.character);
+      } else {
+        showToast('장기기억 수정에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Failed to update fact:', err);
+      showToast('기억 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  // Delete memory fact (memory_facts table in PostgreSQL)
+  const handleDeleteFact = async (memoryId: number | string) => {
+    try {
+      const res = await fetch(`/api/v1/facts/${memoryId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setFacts((prev) => prev.filter((f) => String(f.memory_id) !== String(memoryId)));
+        showToast('🗑️ 장기기억(memory_facts)이 성공적으로 삭제되었습니다.');
+        // Refresh memory pack so character prompts reflect the change immediately
+        fetchMemoryPack(profile.character);
+      } else {
+        showToast('장기기억 삭제에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Failed to delete fact:', err);
+      showToast('기억 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // Chat message / memory_fact delete (Remove from long term memory)
   const handleDeleteMessage = async (id: string) => {
     try {
       const res = await fetch(`/api/v1/chats/messages/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setMessages((prev) => prev.filter((m) => m.id !== id));
-        showToast('발화가 장기 기억 DB에서 영구 삭제되었습니다');
+        const rawFactId = id.startsWith('fact-') ? id.replace('fact-', '') : id;
+        setFacts((prev) => prev.filter((f) => String(f.memory_id) !== rawFactId));
+        showToast('🗑️ 장기기억(memory_facts)이 성공적으로 삭제되었습니다.');
+        fetchMemoryPack(profile.character);
+      } else {
+        showToast('장기기억 삭제에 실패했습니다.');
       }
     } catch (err) {
       console.error('Failed to delete message', err);
+      showToast('기억 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -283,10 +434,15 @@ export const App: React.FC = () => {
       const res = await fetch(`/api/v1/chats?date=${date}`, { method: 'DELETE' });
       if (res.ok) {
         setMessages([]);
-        showToast(`${date} 일자의 모든 대화 데이터가 삭제되었습니다`);
+        setFacts((prev) => prev.filter((f) => f.event_time !== date && !f.created_at?.startsWith(date)));
+        showToast(`🗑️ ${date} 일자의 모든 memory_facts가 삭제되었습니다`);
+        fetchMemoryPack(profile.character);
+      } else {
+        showToast('일자 전체 기억 삭제에 실패했습니다.');
       }
     } catch (err) {
       console.error('Failed to delete all chats for date', err);
+      showToast('삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -343,6 +499,9 @@ export const App: React.FC = () => {
       if (res.ok) {
         const json = await res.json();
         setProfile(json.data);
+        if (updated.character) {
+          fetchMemoryPack(updated.character);
+        }
         showToast('설정이 로봇에 실시간 동기화되었습니다');
       }
     } catch (err) {
@@ -377,6 +536,8 @@ export const App: React.FC = () => {
             onUpdateMessage={handleUpdateMessage}
             onDeleteMessage={handleDeleteMessage}
             onDeleteAllForDate={handleDeleteAllForDate}
+            onDeleteFact={handleDeleteFact}
+            onUpdateFact={handleUpdateFact}
             onAddRecord={handleAddRecord}
             activeCharacter={profile.character}
             facts={facts}
@@ -384,6 +545,11 @@ export const App: React.FC = () => {
             isExtracting={isExtracting}
             onExtractSession={handleExtractSession}
             onExtractAllSessions={handleExtractAllSessions}
+            memoryPack={memoryPack}
+            isMemoryPackLoading={isMemoryPackLoading}
+            onRefreshMemoryPack={() => fetchMemoryPack(profile.character)}
+            availableDates={availableDates}
+            serverConfig={serverConfig}
           />
         )}
 
@@ -401,9 +567,13 @@ export const App: React.FC = () => {
             profile={profile}
             onSaveProfile={handleSaveProfile}
             isLoading={isProfileLoading}
+            serverConfig={serverConfig}
+            serverPresets={serverPresets}
+            onSwitchServer={handleSwitchServer}
           />
         )}
       </main>
+
 
       {/* Fixed Bottom 3-Tab Navigation */}
       <Navigation activeTab={activeTab} onChangeTab={setActiveTab} />

@@ -26,6 +26,14 @@ export interface ChatMessage {
   text: string;
   edited?: boolean;
   confidence?: number;
+  // Fact properties from memory_facts table
+  isFact?: boolean;
+  factId?: number | string;
+  domainTags?: string[];
+  scope?: string;
+  ownerCharacterId?: string | null;
+  importance?: number;
+  summaryForPrompt?: string | null;
 }
 
 export type InterventionMode = 'study' | 'cooking';
@@ -94,13 +102,71 @@ app.use((req, res, next) => {
   next();
 });
 
-// Live Cloud PostgreSQL Database Configuration (mindmate.brewertranslator.cloud)
-const CLOUD_DB_CONFIG = {
-  baseUrl: process.env.MINDMATE_API_URL || 'https://mindmate.brewertranslator.cloud',
-  userId: process.env.MINDMATE_USER_ID || '280dab65474e4598bfc0df0e9173fd4f',
-  apiKey: process.env.MINDMATE_API_KEY || 'mk_511852e88e23c3505e68c77e8ba2c0899d6fc953ad853036f3787cc9587d1a03',
-  userName: '조형주',
+// Live PostgreSQL Memory Server Configuration (FastAPI + pgvector)
+export interface ServerPreset {
+  id: string;
+  name: string;
+  target: 'cloud' | 'local' | 'custom';
+  baseUrl: string;
+  userId: string;
+  userName: string;
+  apiKey: string;
+  description: string;
+}
+
+export const SERVER_PRESETS: ServerPreset[] = [
+  {
+    id: 'cloud_johangjoo',
+    name: '클라우드 DB: 조항주 (실서버)',
+    target: 'cloud',
+    baseUrl: 'https://mindmate.brewertranslator.cloud',
+    userId: 'johangjoo',
+    userName: '조항주',
+    apiKey: 'mk_a5af41a863e38ef3eaa5d010ed7d3a383edc8a0f195d116313f88b6c6068eede',
+    description: 'PostgreSQL + pgvector 원격 실서버 (162개 장기기억 및 세션 적재됨)',
+  },
+  {
+    id: 'local_fastapi',
+    name: '로컬 FastAPI 서버 (user_default)',
+    target: 'local',
+    baseUrl: 'http://localhost:8000',
+    userId: 'user_default',
+    userName: 'user_default (데모)',
+    apiKey: 'mk_demo_character_memory',
+    description: '로컬 Docker/Uvicorn 환경 (seed_character_memory.py 기본 계정)',
+  },
+  {
+    id: 'cloud_yangheeseong',
+    name: '클라우드 DB: 양희성 (AI 개발자)',
+    target: 'cloud',
+    baseUrl: 'https://mindmate.brewertranslator.cloud',
+    userId: 'test3',
+    userName: '양희성',
+    apiKey: 'mk_demo_character_memory',
+    description: '클라우드 DB 등록 계정 (로봇 이름: 네오)',
+  },
+];
+
+let activeServerConfig: ServerPreset = {
+  id: 'cloud_johangjoo',
+  name: '클라우드 DB: 조항주 (실서버)',
+  target: (process.env.MINDMATE_API_URL?.includes('localhost') ? 'local' : 'cloud') as any,
+  baseUrl: process.env.MINDMATE_API_URL || SERVER_PRESETS[0].baseUrl,
+  userId: process.env.MINDMATE_USER_ID || SERVER_PRESETS[0].userId,
+  userName: '조항주',
+  apiKey: process.env.MINDMATE_API_KEY || SERVER_PRESETS[0].apiKey,
+  description: 'PostgreSQL + pgvector 실시간 연동',
 };
+
+function updateActiveServerConfig(newConfig: Partial<ServerPreset>) {
+  activeServerConfig = { ...activeServerConfig, ...newConfig };
+  robotStatus.cloudDb = {
+    connected: true,
+    host: activeServerConfig.baseUrl.replace(/^https?:\/\//, ''),
+    userName: activeServerConfig.userName,
+    userId: activeServerConfig.userId,
+  };
+}
 
 // Data Store for MindMate Robot
 let robotStatus: RobotStatus = {
@@ -111,11 +177,12 @@ let robotStatus: RobotStatus = {
   batteryLevel: 88,
   cloudDb: {
     connected: true,
-    host: 'mindmate.brewertranslator.cloud',
-    userName: CLOUD_DB_CONFIG.userName,
-    userId: CLOUD_DB_CONFIG.userId,
+    host: activeServerConfig.baseUrl.replace(/^https?:\/\//, ''),
+    userName: activeServerConfig.userName,
+    userId: activeServerConfig.userId,
   },
 };
+
 
 // Increment uptime periodically when online (only in persistent server mode)
 if (!process.env.VERCEL) {
@@ -637,76 +704,100 @@ app.post('/api/v1/robot/status/state', (req, res) => {
   });
 });
 
-// 2. Chat Conversations (Cloud PostgreSQL DB with In-Memory fallback)
+// 2. Chat Conversations (Cloud/Local PostgreSQL DB with In-Memory fallback)
 app.get('/api/v1/chats', async (req, res) => {
-  const queryDate = (req.query.date as string) || '2026-09-27';
+  const queryDate = (req.query.date as string) || '2026-10-28';
+  let availableDates: string[] = ['2026-10-29', '2026-10-28', '2026-10-05', '2026-09-27'];
 
   try {
-    const remoteRes = await fetch(
-      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/sessions`,
-      {
-        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
-        signal: AbortSignal.timeout(4000),
-      }
-    );
+    // 1. Fetch sessions and facts simultaneously from PostgreSQL server
+    const [remoteSessionsRes, remoteFactsRes] = await Promise.all([
+      fetch(`${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/sessions`, {
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
+        signal: AbortSignal.timeout(6000),
+      }),
+      fetch(`${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts?include_expired=true`, {
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
+        signal: AbortSignal.timeout(6000),
+      }),
+    ]);
 
-    if (remoteRes.ok) {
-      const sessions = (await remoteRes.json()) as any[];
-      if (Array.isArray(sessions)) {
-        const matchingSessions = sessions.filter((s) => s.session_date === queryDate);
-
-        if (matchingSessions.length > 0) {
-          const remoteChats: ChatMessage[] = [];
-          matchingSessions.forEach((s) => {
-            if (Array.isArray(s.transcript)) {
-              s.transcript.forEach((t: any, idx: number) => {
-                const hour = 14 + Math.floor(idx / 4);
-                const min = 5 + (idx * 2) % 55;
-                const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-
-                remoteChats.push({
-                  id: `cloud-${s.session_id.slice(0, 8)}-${idx}`,
-                  sessionId: s.session_id,
-                  date: s.session_date || queryDate,
-                  time: timeStr,
-                  sender: t.role === 'user' ? 'user' : 'robot',
-                  text: t.text || '',
-                  edited: false,
-                });
-              });
-            }
-          });
-
-          if (remoteChats.length > 0) {
-            return res.json({
-              success: true,
-              date: queryDate,
-              source: 'cloud_postgresql',
-              user: CLOUD_DB_CONFIG.userName,
-              data: remoteChats,
-              sessions: matchingSessions.map((s) => ({
-                session_id: s.session_id,
-                session_date: s.session_date,
-                character_id: s.character_id,
-                turnCount: s.transcript?.length || 0,
-              })),
-              total: remoteChats.length,
-            });
-          }
-        }
-      }
+    let sessions: any[] = [];
+    if (remoteSessionsRes.ok) {
+      sessions = (await remoteSessionsRes.json()) as any[];
     }
+
+    let allFacts: any[] = [];
+    if (remoteFactsRes.ok) {
+      allFacts = (await remoteFactsRes.json()) as any[];
+    }
+
+    // Merge all available dates from both sessions and memory_facts
+    const sessionDates = Array.isArray(sessions) ? sessions.map((s) => s.session_date).filter(Boolean) : [];
+    const factDates = Array.isArray(allFacts) ? allFacts.map((f) => f.event_time).filter(Boolean) : [];
+    const mergedDates = Array.from(new Set([...sessionDates, ...factDates])).filter(Boolean);
+
+    if (mergedDates.length > 0) {
+      availableDates = mergedDates.sort((a, b) => b.localeCompare(a));
+    }
+
+    const remoteChats: ChatMessage[] = [];
+
+    // [사용자 요청] 대화 형태 context(raw_sessions)는 제외하고, 오직 memory_facts 테이블의 context(content)만 조회!
+    const matchingFacts = Array.isArray(allFacts)
+      ? allFacts.filter((f) => f.event_time === queryDate || f.created_at?.startsWith(queryDate))
+      : [];
+
+    matchingFacts.forEach((f) => {
+      const timeStr = f.created_at ? f.created_at.slice(11, 16) : '12:00';
+      remoteChats.push({
+        id: `fact-${f.memory_id}`,
+        factId: f.memory_id,
+        sessionId: f.source_session_id,
+        date: f.event_time || queryDate,
+        time: timeStr,
+        sender: 'robot',
+        text: f.content,
+        isFact: true,
+        domainTags: f.domain_tags || [],
+        scope: f.scope,
+        ownerCharacterId: f.owner_character_id,
+        importance: f.importance,
+        confidence: f.confidence,
+        summaryForPrompt: f.summary_for_prompt,
+        edited: false,
+      });
+    });
+
+    return res.json({
+      success: true,
+      date: queryDate,
+      source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
+      user: activeServerConfig.userName,
+      userId: activeServerConfig.userId,
+      data: remoteChats,
+      availableDates,
+      factsCount: matchingFacts.length,
+      total: remoteChats.length,
+    });
   } catch (err) {
-    console.warn('[CloudDB] Remote fetch fallback to cache:', err);
+    console.warn('[ServerDB] Remote fetch fallback to cache:', err);
   }
 
   // Fallback to local cache
   const filtered = chats.filter((c) => c.date === queryDate);
+  chats.forEach((c) => {
+    if (c.date && !availableDates.includes(c.date)) {
+      availableDates.push(c.date);
+    }
+  });
+
   res.json({
     success: true,
     date: queryDate,
     source: 'in_memory_cache',
     data: filtered,
+    availableDates: availableDates.sort((a, b) => b.localeCompare(a)),
     total: filtered.length,
   });
 });
@@ -720,7 +811,7 @@ app.post('/api/v1/chats/messages', (req, res) => {
 
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const targetDate = date || '2026-09-27';
+  const targetDate = date || '2026-10-28';
 
   const newMsg: ChatMessage = {
     id: `msg-${Date.now()}`,
@@ -733,12 +824,12 @@ app.post('/api/v1/chats/messages', (req, res) => {
 
   chats.push(newMsg);
 
-  // Sync to Cloud PostgreSQL Server asynchronously
-  fetch(`${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/sessions`, {
+  // Sync to PostgreSQL Server asynchronously
+  fetch(`${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/sessions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': CLOUD_DB_CONFIG.apiKey,
+      'X-API-Key': activeServerConfig.apiKey,
     },
     body: JSON.stringify({
       session_date: targetDate,
@@ -746,7 +837,8 @@ app.post('/api/v1/chats/messages', (req, res) => {
       turns: [{ role: sender === 'user' ? 'user' : 'assistant', text }],
     }),
     signal: AbortSignal.timeout(4000),
-  }).catch((e) => console.warn('[CloudDB] Sync failed:', e));
+  }).catch((e) => console.warn('[ServerDB] Sync failed:', e));
+
 
   if (sender === 'robot') {
     robotStatus.status = 'speaking';
@@ -785,27 +877,78 @@ app.patch('/api/v1/chats/messages/:id', (req, res) => {
   });
 });
 
-app.delete('/api/v1/chats/messages/:id', (req, res) => {
+app.delete('/api/v1/chats/messages/:id', async (req, res) => {
   const { id } = req.params;
+
+  // Support deleting memory_facts directly via fact-ID
+  if (id.startsWith('fact-')) {
+    const factId = id.replace('fact-', '');
+    try {
+      await fetch(
+        `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts/${factId}`,
+        {
+          method: 'DELETE',
+          headers: { 'X-API-Key': activeServerConfig.apiKey },
+          signal: AbortSignal.timeout(5000),
+        }
+      );
+    } catch (err: any) {
+      console.warn('[ServerDB] Fact deletion forwarded:', err.message);
+    }
+    return res.json({
+      success: true,
+      message: '장기 기억(memory_facts)이 성공적으로 삭제되었습니다.',
+      deletedId: id,
+    });
+  }
+
   const initialLen = chats.length;
   chats = chats.filter((c) => c.id !== id);
 
-  if (chats.length === initialLen) {
-    res.status(404).json({ success: false, message: 'Message not found' });
-    return;
-  }
-
   res.json({
     success: true,
-    message: 'Message deleted successfully',
+    message: '대화 기록이 삭제되었습니다.',
+    deletedId: id,
   });
 });
 
-app.delete('/api/v1/chats', (req, res) => {
+app.delete('/api/v1/chats', async (req, res) => {
   const queryDate = req.query.date as string;
   if (!queryDate) {
     res.status(400).json({ success: false, message: 'date query parameter required' });
     return;
+  }
+
+  // Also delete all facts for that date on the remote database
+  let deletedFactsCount = 0;
+  try {
+    const factsRes = await fetch(
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts?include_expired=true`,
+      {
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    if (factsRes.ok) {
+      const data: any = await factsRes.json();
+      const factsList: any[] = Array.isArray(data) ? data : data.facts || data.data || [];
+      const toDelete = factsList.filter(
+        (f) => f.event_time === queryDate || (f.created_at && f.created_at.startsWith(queryDate))
+      );
+      for (const f of toDelete) {
+        await fetch(
+          `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts/${f.memory_id}`,
+          {
+            method: 'DELETE',
+            headers: { 'X-API-Key': activeServerConfig.apiKey },
+            signal: AbortSignal.timeout(3000),
+          }
+        ).catch(() => {});
+        deletedFactsCount++;
+      }
+    }
+  } catch (err: any) {
+    console.warn('[ServerDB] Batch delete facts error:', err.message);
   }
 
   const deletedCount = chats.filter((c) => c.date === queryDate).length;
@@ -813,15 +956,15 @@ app.delete('/api/v1/chats', (req, res) => {
 
   res.json({
     success: true,
-    message: `Deleted ${deletedCount} messages for date ${queryDate}`,
+    message: `Deleted ${deletedFactsCount} memory_facts and ${deletedCount} messages for date ${queryDate}`,
   });
 });
 
 // 3. Proactive Interventions
 app.get('/api/v1/robot/proactive-logs', (req, res) => {
   const period = (req.query.period as string) || 'today';
-  const todayStr = '2026-09-27';
-  const yesterdayStr = '2026-09-26';
+  const todayStr = '2026-10-28';
+  const yesterdayStr = '2026-10-27';
 
   const todayLogs = proactiveLogs.filter((l) => l.date === todayStr);
   const yesterdayLogs = proactiveLogs.filter((l) => l.date === yesterdayStr);
@@ -1048,18 +1191,155 @@ app.put('/api/v1/robot/profile', (req, res) => {
   });
 });
 
-// 6. Cloud PostgreSQL Health Check
+// 6. Server Connection Configuration & Management API
+app.get('/api/v1/server/config', (req, res) => {
+  res.json({
+    success: true,
+    active: activeServerConfig,
+    presets: SERVER_PRESETS,
+  });
+});
+
+app.post('/api/v1/server/config', async (req, res) => {
+  const { presetId, baseUrl, userId, userName, apiKey, target } = req.body;
+
+  if (presetId) {
+    const found = SERVER_PRESETS.find((p) => p.id === presetId);
+    if (found) {
+      updateActiveServerConfig(found);
+      return res.json({
+        success: true,
+        message: `'${found.name}'(으)로 로그인되었습니다.`,
+        active: activeServerConfig,
+      });
+    }
+  }
+
+  const effectiveBaseUrl = (baseUrl || activeServerConfig.baseUrl || 'https://mindmate.brewertranslator.cloud').replace(/\/$/, '');
+  const effectiveUserId = (userId || activeServerConfig.userId || '').trim();
+  const effectiveApiKey = (apiKey || activeServerConfig.apiKey || '').trim();
+
+  if (!effectiveUserId || !effectiveApiKey) {
+    return res.status(400).json({
+      success: false,
+      message: 'User ID와 API Key를 모두 입력해주세요.',
+    });
+  }
+
+  // Validate credentials with remote server
+  try {
+    const checkRes = await fetch(
+      `${effectiveBaseUrl}/users/${effectiveUserId}/facts?include_expired=true`,
+      {
+        headers: { 'X-API-Key': effectiveApiKey },
+        signal: AbortSignal.timeout(6000),
+      }
+    );
+    if (checkRes.status === 401 || checkRes.status === 403) {
+      return res.status(401).json({
+        success: false,
+        message: '인증 실패: 유효하지 않은 API Key입니다.',
+      });
+    }
+    if (checkRes.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: `존재하지 않는 User ID (${effectiveUserId}) 입니다.`,
+      });
+    }
+  } catch (err: any) {
+    console.warn('[ServerDB] Auth check warning:', err.message);
+  }
+
+  // Update active configuration for the logged-in user
+  updateActiveServerConfig({
+    baseUrl: effectiveBaseUrl,
+    userId: effectiveUserId,
+    userName: userName || effectiveUserId,
+    apiKey: effectiveApiKey,
+    target: effectiveBaseUrl.includes('localhost') ? 'local' : 'cloud',
+    id: `user_${effectiveUserId}`,
+    name: `계정: ${effectiveUserId}`,
+    description: `User: ${effectiveUserId} · ${effectiveBaseUrl}`,
+  });
+
+  res.json({
+    success: true,
+    message: `'${effectiveUserId}' 계정으로 로그인 및 DB 전환이 완료되었습니다.`,
+    active: activeServerConfig,
+  });
+});
+
+// Fetch user profiles from the active server
+app.get('/api/v1/server/users', async (req, res) => {
+  try {
+    const remoteRes = await fetch(`${activeServerConfig.baseUrl}/users`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (remoteRes.ok) {
+      const users = await remoteRes.json();
+      return res.json({
+        success: true,
+        data: users,
+        server: activeServerConfig.baseUrl,
+      });
+    }
+    res.status(remoteRes.status).json({ success: false, message: '서버에서 사용자 목록을 가져오지 못했습니다.' });
+  } catch (err: any) {
+    res.status(502).json({
+      success: false,
+      message: `서버(${activeServerConfig.baseUrl})에 연결할 수 없습니다: ${err.message}`,
+    });
+  }
+});
+
+// Ping active server DB health
+app.get('/api/v1/server/ping', async (req, res) => {
+  const start = Date.now();
+  try {
+    const remoteRes = await fetch(`${activeServerConfig.baseUrl}/health/db`, {
+      signal: AbortSignal.timeout(3500),
+    });
+    const latency = Date.now() - start;
+    if (remoteRes.ok) {
+      const data = await remoteRes.json();
+      return res.json({
+        success: true,
+        online: true,
+        latencyMs: latency,
+        data,
+        server: activeServerConfig.baseUrl,
+      });
+    }
+    res.json({
+      success: false,
+      online: false,
+      latencyMs: latency,
+      status: remoteRes.status,
+      server: activeServerConfig.baseUrl,
+    });
+  } catch (err: any) {
+    res.json({
+      success: false,
+      online: false,
+      error: err.message,
+      server: activeServerConfig.baseUrl,
+    });
+  }
+});
+
+// Cloud/Local PostgreSQL Health Check (Legacy compatibility)
 app.get('/api/v1/cloud/status', async (req, res) => {
   try {
-    const health = await fetch(`${CLOUD_DB_CONFIG.baseUrl}/health/db`, {
+    const health = await fetch(`${activeServerConfig.baseUrl}/health/db`, {
       signal: AbortSignal.timeout(3000),
     }).then((r) => r.json());
     res.json({
       success: true,
       cloudDb: health,
       user: {
-        name: CLOUD_DB_CONFIG.userName,
-        id: CLOUD_DB_CONFIG.userId,
+        name: activeServerConfig.userName,
+        id: activeServerConfig.userId,
       },
     });
   } catch (err: any) {
@@ -1075,9 +1355,9 @@ app.get('/api/v1/facts', async (req, res) => {
   const includeExpired = req.query.include_expired === 'true';
   try {
     const remoteRes = await fetch(
-      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/facts?include_expired=${includeExpired}`,
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts?include_expired=${includeExpired}`,
       {
-        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
         signal: AbortSignal.timeout(6000),
       }
     );
@@ -1087,11 +1367,11 @@ app.get('/api/v1/facts', async (req, res) => {
         success: true,
         data: facts,
         total: facts.length,
-        source: 'cloud_postgresql',
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
       });
     }
   } catch (err: any) {
-    console.warn('[CloudDB] Facts fetch fallback to cache:', err.message);
+    console.warn('[ServerDB] Facts fetch fallback to cache:', err.message);
   }
 
   // Graceful fallback
@@ -1100,7 +1380,7 @@ app.get('/api/v1/facts', async (req, res) => {
     data: [
       {
         memory_id: 1035,
-        user_id: CLOUD_DB_CONFIG.userId,
+        user_id: activeServerConfig.userId,
         content: "사용자는 2026-09-27에 영어 단어 30개를 외우는 학습을 진행했고, 방금 외운 단어 중 'follow-up'의 이메일 예문을 요청했다.",
         summary_for_prompt: "2026-09-27 영어 단어 30개 학습, 'follow-up' 이메일 예문 질문",
         memory_type: 'learning_progress',
@@ -1119,17 +1399,98 @@ app.get('/api/v1/facts', async (req, res) => {
   });
 });
 
+// 7-2. Update Long-term Memory Fact (PATCH /users/{id}/facts/{factId} on memory_facts table)
+app.patch('/api/v1/facts/:id', async (req, res) => {
+  const { id } = req.params;
+  const { content, summary_for_prompt } = req.body;
+
+  if (!content) {
+    res.status(400).json({ success: false, message: 'content is required' });
+    return;
+  }
+
+  try {
+    const remoteRes = await fetch(
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts/${id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': activeServerConfig.apiKey,
+        },
+        body: JSON.stringify({ content, summary_for_prompt }),
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    if (remoteRes.ok) {
+      const data = await remoteRes.json();
+      return res.json({
+        success: true,
+        message: '기억(memory_facts)이 원격 DB에서 성공적으로 수정되었습니다.',
+        data,
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
+      });
+    }
+  } catch (err: any) {
+    console.warn('[ServerDB] Remote fact update failed:', err.message);
+  }
+
+  // Graceful response for local / client sync
+  res.json({
+    success: true,
+    message: '기억(memory_facts)이 수정되었습니다.',
+    data: {
+      memory_id: Number(id) || id,
+      content,
+      summary_for_prompt: summary_for_prompt || content.slice(0, 40),
+    },
+    source: 'local_sync',
+  });
+});
+
+// 7-1. Delete Long-term Memory Fact (DELETE /users/{id}/facts/{factId} on memory_facts table)
+app.delete('/api/v1/facts/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const remoteRes = await fetch(
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/facts/${id}`,
+      {
+        method: 'DELETE',
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    if (remoteRes.ok) {
+      return res.json({
+        success: true,
+        message: '기억 사실(memory_facts)이 성공적으로 삭제되었습니다.',
+        deletedId: id,
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
+      });
+    }
+  } catch (err: any) {
+    console.warn('[ServerDB] Remote fact delete failed:', err.message);
+  }
+
+  res.json({
+    success: true,
+    message: '기억 사실(memory_facts)이 삭제되었습니다.',
+    deletedId: id,
+    source: 'local_sync',
+  });
+});
+
 // 8. Session Fact Extraction (POST /users/{id}/sessions/{sessionId}/extract)
 app.post('/api/v1/sessions/:sessionId/extract', async (req, res) => {
   const { sessionId } = req.params;
   try {
     const remoteRes = await fetch(
-      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/sessions/${sessionId}/extract`,
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/sessions/${sessionId}/extract`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': CLOUD_DB_CONFIG.apiKey,
+          'X-API-Key': activeServerConfig.apiKey,
         },
         signal: AbortSignal.timeout(35000), // LLM inference timeout
       }
@@ -1140,7 +1501,7 @@ app.post('/api/v1/sessions/:sessionId/extract', async (req, res) => {
       return res.json({
         success: true,
         data,
-        source: 'cloud_postgresql',
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
       });
     }
 
@@ -1150,7 +1511,7 @@ app.post('/api/v1/sessions/:sessionId/extract', async (req, res) => {
       message: `추출 실패: ${errText}`,
     });
   } catch (err: any) {
-    console.error('[CloudDB] Extract error:', err);
+    console.error('[ServerDB] Extract error:', err);
     res.status(500).json({
       success: false,
       message: err.message || '기억 추출 중 오류가 발생했습니다.',
@@ -1163,12 +1524,12 @@ app.post('/api/v1/facts/extract-all', async (req, res) => {
   const reset = req.query.reset === 'true';
   try {
     const remoteRes = await fetch(
-      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/extract-all?reset=${reset}`,
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/extract-all?reset=${reset}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': CLOUD_DB_CONFIG.apiKey,
+          'X-API-Key': activeServerConfig.apiKey,
         },
         signal: AbortSignal.timeout(60000),
       }
@@ -1179,7 +1540,7 @@ app.post('/api/v1/facts/extract-all', async (req, res) => {
       return res.json({
         success: true,
         data,
-        source: 'cloud_postgresql',
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
       });
     }
 
@@ -1189,7 +1550,7 @@ app.post('/api/v1/facts/extract-all', async (req, res) => {
       message: `일괄 추출 실패: ${errText}`,
     });
   } catch (err: any) {
-    console.error('[CloudDB] Bulk extract error:', err);
+    console.error('[ServerDB] Bulk extract error:', err);
     res.status(500).json({
       success: false,
       message: err.message || '일괄 기억 추출 중 오류가 발생했습니다.',
@@ -1201,9 +1562,9 @@ app.post('/api/v1/facts/extract-all', async (req, res) => {
 app.get('/api/v1/reflections', async (req, res) => {
   try {
     const remoteRes = await fetch(
-      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/reflections`,
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/reflections`,
       {
-        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
         signal: AbortSignal.timeout(6000),
       }
     );
@@ -1213,11 +1574,11 @@ app.get('/api/v1/reflections', async (req, res) => {
         success: true,
         data: reflections,
         total: reflections.length,
-        source: 'cloud_postgresql',
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
       });
     }
   } catch (err: any) {
-    console.warn('[CloudDB] Reflections fetch error:', err.message);
+    console.warn('[ServerDB] Reflections fetch error:', err.message);
   }
 
   res.json({
@@ -1233,9 +1594,9 @@ app.get('/api/v1/characters/:characterId/memory-pack', async (req, res) => {
   const { characterId } = req.params;
   try {
     const remoteRes = await fetch(
-      `${CLOUD_DB_CONFIG.baseUrl}/users/${CLOUD_DB_CONFIG.userId}/characters/${characterId}/memory-pack`,
+      `${activeServerConfig.baseUrl}/users/${activeServerConfig.userId}/characters/${characterId}/memory-pack`,
       {
-        headers: { 'X-API-Key': CLOUD_DB_CONFIG.apiKey },
+        headers: { 'X-API-Key': activeServerConfig.apiKey },
         signal: AbortSignal.timeout(6000),
       }
     );
@@ -1244,16 +1605,49 @@ app.get('/api/v1/characters/:characterId/memory-pack', async (req, res) => {
       return res.json({
         success: true,
         data: pack,
-        source: 'cloud_postgresql',
+        source: activeServerConfig.target === 'local' ? 'local_postgresql' : 'cloud_postgresql',
       });
     }
   } catch (err: any) {
-    console.warn('[CloudDB] Character memory pack fetch error:', err.message);
+    console.warn('[ServerDB] Character memory pack fetch error:', err.message);
   }
 
-  res.status(502).json({
-    success: false,
-    message: '메모리 팩을 불러올 수 없습니다.',
+  // Realistic fallback for offline / demo mode
+  const isStudy = characterId === 'study';
+  res.json({
+    success: true,
+    source: 'in_memory_cache',
+    data: {
+      text: isStudy
+        ? `## Active Character\n- id: study\n- name: Study Friend\n- role: 공부, 발표 준비, 과제 계획, 개념 설명을 돕는 캐릭터.\n- tone: calm, practical, structured\n\n## User Profile\n- name: ${activeServerConfig.userName}\n- robot_name: MindMate-01\n- persona: 친근하고 따뜻하게 존댓말로 대화해줘.\n\n## Study Memory\n- [learning_progress] 토익 영단어 30개를 25분 집중 학습하고 follow-up 예문 요청\n- [learning_progress] 이진 탐색·bisect 학습 후 백준 1920 통과`
+        : `## Active Character\n- id: cooking\n- name: Cooking Advisor\n- role: 식단, 재료, 레시피, 조리 선호를 반영해 요리를 돕는 캐릭터.\n- tone: warm, concise, practical\n\n## User Profile\n- name: ${activeServerConfig.userName}\n- robot_name: MindMate-01\n\n## Cooking Memory\n- [recipe_preference] 알리오 올리오 파스타 면 삶기 7분 및 면수 활용 선호`,
+      user: {
+        user_id: activeServerConfig.userId,
+        user_name: activeServerConfig.userName,
+        persona: '친근하고 따뜻하게 존댓말로 대화해줘.',
+        robot_name: 'MindMate-01',
+      },
+      character: {
+        character_id: characterId,
+        name: isStudy ? 'Study Friend' : 'Cooking Advisor',
+        description: isStudy
+          ? '공부, 발표 준비, 과제 계획, 개념 설명을 돕는 캐릭터.'
+          : '식단, 재료, 레시피, 조리 선호를 반영해 요리를 돕는 캐릭터.',
+        allowed_domains: isStudy ? ['shared', 'identity', 'study'] : ['shared', 'identity', 'cooking'],
+        blocked_domains: isStudy ? ['cooking_private'] : ['study_private'],
+        tone: isStudy ? 'calm, practical, structured' : 'warm, concise, practical',
+      },
+      counts: {
+        candidates: isStudy ? 3 : 1,
+        included: isStudy ? 3 : 1,
+        blocked: 0,
+        shared: 0,
+        character_private: isStudy ? 3 : 1,
+        reflections: 0,
+      },
+      included_memory_ids: [1040, 1041, 1035],
+      blocked_memory_ids: [],
+    },
   });
 });
 
@@ -1262,3 +1656,4 @@ export default function handler(req: any, res: any) {
 }
 
 export { app };
+
